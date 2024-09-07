@@ -1,0 +1,42 @@
+name: coolearth
+version: '${project.version}'
+main: me.coolearth.coolearth.Coolearth
+api-version: '1.21'
+softdepend: [ ProtocolLib ]
+commands:
+  start:
+    description: Starts the round
+    usage: /start
+    aliases: s
+    permission: start
+    permission-message: Yo u got no perms
+  reset:
+    description: Resets to a new match
+    usage: /reset
+    aliases: r
+    permission: reset
+    permission-message: Yo u got no perms
+  upgrade:
+    description: Upgrade team generator
+    usage: /upgrade
+    aliases: u
+    permission: upgrade
+    permission-message: Yo u got no perms
+  stopMatch:
+    description: Stops the current match
+    usage: /stopMatch
+    aliases: sm
+    permission: stopMatch
+    permission-message: Yo u got no perms
+  teams:
+    description: Adds someone to a team
+    usage: /teams
+    aliases: t
+    permission: teams
+    permission-message: Yo u got no perms
+  startRunnables:
+    description: Starts all server runnables
+    usage: /startRunnables
+    aliases: sr
+    permission: startRunnables
+    permission-message: Yo u got no perms
