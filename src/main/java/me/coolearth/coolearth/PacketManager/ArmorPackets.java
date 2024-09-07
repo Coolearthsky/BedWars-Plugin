@@ -43,38 +43,18 @@ public class ArmorPackets {
                 setInvisArmor(packet);
             }
         });
-
-        m_manager.addPacketListener(new PacketAdapter(coolearth, PacketType.Play.Server.ENTITY_METADATA) {
-            @Override
-            public void onPacketSending(PacketEvent event) {
-                PacketContainer packet = event.getPacket();
-                Entity read = packet.getEntityModifier(event).read(0);
-                if (!(read instanceof Player)) return;
-                if (checkInvalid((Player) read, event.getPlayer())) return;
-                setInvis(read.getEntityId());
-            }
-        });
-    }
-
-    public static void setInvis(int EntityId) {
-        PacketContainer fakeEquipmentPacket = m_manager.createPacket(PacketType.Play.Server.ENTITY_EQUIPMENT);
-        fakeEquipmentPacket.getIntegers().write(0, EntityId);
-        setInvisArmor(fakeEquipmentPacket);
     }
 
     private static void setInvisArmor(PacketContainer fakeEquipmentPacket) {
         ArrayList<Pair<EnumWrappers.ItemSlot, ItemStack>> value = new ArrayList<>();
-        value.add(new Pair<>(EnumWrappers.ItemSlot.MAINHAND, new ItemStack(Material.AIR)));
-        value.add(new Pair<>(EnumWrappers.ItemSlot.OFFHAND, new ItemStack(Material.AIR)));
         value.add(new Pair<>(EnumWrappers.ItemSlot.FEET, new ItemStack(Material.AIR)));
         value.add(new Pair<>(EnumWrappers.ItemSlot.LEGS, new ItemStack(Material.AIR)));
         value.add(new Pair<>(EnumWrappers.ItemSlot.CHEST, new ItemStack(Material.AIR)));
         value.add(new Pair<>(EnumWrappers.ItemSlot.HEAD, new ItemStack(Material.AIR)));
-        value.add(new Pair<>(EnumWrappers.ItemSlot.BODY, new ItemStack(Material.AIR)));
         fakeEquipmentPacket.getSlotStackPairLists().write(0, value);
     }
 
     private static boolean checkInvalid(Player sourcePlayer, Player targetPlayer) {
-        return !sourcePlayer.hasPotionEffect(PotionEffectType.INVISIBILITY) || sourcePlayer.getScoreboardTags().contains("player") || Util.getTeam(targetPlayer) == Util.getTeam(sourcePlayer);
+        return !sourcePlayer.hasPotionEffect(PotionEffectType.INVISIBILITY) || !sourcePlayer.getScoreboardTags().contains("player") || Util.getTeam(targetPlayer) == Util.getTeam(sourcePlayer);
     }
 }

@@ -2,7 +2,7 @@ name: coolearth
 version: '${project.version}'
 main: me.coolearth.coolearth.Coolearth
 api-version: '1.21'
-softdepend: [ ProtocolLib ]
+depend: [ ProtocolLib ]
 commands:
   start:
     description: Starts the round
