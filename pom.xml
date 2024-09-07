@@ -78,11 +78,10 @@
           <scope>test</scope>
       </dependency>
       <dependency>
-          <groupId>me.coolearth</groupId>
-          <artifactId>coolearth</artifactId>
-          <version>5.3.0</version>
-          <scope>system</scope>
-          <systemPath>C:\Users\coole\Downloads\PaperMCserver\plugins\ProtocolLib.jar</systemPath>
+          <groupId>com.comphenix.protocol</groupId>
+          <artifactId>ProtocolLib</artifactId>
+          <version>5.1.0</version>
+          <scope>provided</scope>
       </dependency>
   </dependencies>
 </project>

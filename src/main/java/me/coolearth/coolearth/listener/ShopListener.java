@@ -1,5 +1,6 @@
 package me.coolearth.coolearth.listener;
 
+import me.coolearth.coolearth.PacketManager.ArmorPackets;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.math.MathUtil;
 import me.coolearth.coolearth.Util.Team;
@@ -52,23 +53,24 @@ public class ShopListener implements Listener {
     @EventHandler
     public void onEat(PlayerItemConsumeEvent event) {
         event.setCancelled(true);
-        PlayerInventory player = event.getPlayer().getInventory();
+        Player player = event.getPlayer();
+        PlayerInventory inventory = player.getInventory();
         ItemStack item = event.getItem();
         Material type = item.getType();
         if (type == Material.POTION) {
-            player.setItem(event.getHand(), new ItemStack(Material.AIR));
+            inventory.setItem(event.getHand(), new ItemStack(Material.AIR));
             PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
-            event.getPlayer().addPotionEffects(potionMeta.getCustomEffects());
+            player.addPotionEffects(potionMeta.getCustomEffects());
         }
         else if (type == Material.GOLDEN_APPLE) {
-            event.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 20*5, 1, false, false));
-            event.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 20*120, 0, false, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 20*5, 1, false, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 20*120, 0, false, false));
             item.setAmount(item.getAmount()-1);
-            player.setItem(event.getHand(), item);
+            inventory.setItem(event.getHand(), item);
         }
         else if (type == Material.MILK_BUCKET) {
-            player.setItem(event.getHand(), new ItemStack(Material.AIR));
-            PlayerAddons playerAddons = m_playerInfo.getPlayers().get(event.getPlayer());
+            inventory.setItem(event.getHand(), new ItemStack(Material.AIR));
+            PlayerAddons playerAddons = m_playerInfo.getPlayers().get(player);
             if (playerAddons != null) {
                 playerAddons.drankMilk();
             }
