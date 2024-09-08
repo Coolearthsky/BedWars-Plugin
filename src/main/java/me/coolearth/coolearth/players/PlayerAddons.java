@@ -18,6 +18,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class PlayerAddons {
     private Team m_team;
@@ -32,12 +33,12 @@ public class PlayerAddons {
     private final JavaPlugin m_coolearth;
     private boolean m_shearsUpgrade;
     private Material m_armor;
-    private final Player m_player;
+    private final UUID m_player;
     private Optional<BukkitRunnable> m_ignoreTrap;
     private Optional<BukkitRunnable> m_deathCheck;
     private Optional<BukkitRunnable> m_onRespawn;
 
-    public PlayerAddons(JavaPlugin coolearth, Team team, Player player, boolean deathCheck) {
+    public PlayerAddons(JavaPlugin coolearth, Team team, UUID player) {
         m_team = team;
         m_coolearth = coolearth;
         m_player = player;
@@ -49,7 +50,7 @@ public class PlayerAddons {
         m_shearsUpgrade = false;
         m_ignoreTrap = Optional.empty();
         for (int i = 0; i < 9; i++) {
-            Inventory shop = Bukkit.createInventory(m_player, 54, "Shop");
+            Inventory shop = Bukkit.createInventory(Bukkit.getPlayer(player), 54, "Shop");
             m_shop.add(shop);
         }
         m_onRespawn = Optional.empty();
@@ -57,16 +58,18 @@ public class PlayerAddons {
         m_currentShopMenu = Optional.empty();
         m_pickaxeLevel = Optional.empty();
         m_axeLevel = Optional.empty();
-        if (deathCheck) deathCheck();
+        deathCheck();
     }
 
     private void deathCheck() {
         m_deathCheck= Optional.of(new BukkitRunnable() {
             @Override
             public void run() {
-                if (!m_player.getScoreboardTags().contains("player")) return;
-                if (m_player.getLocation().getY() < -40 && m_player.getGameMode() != GameMode.SPECTATOR) {
-                    m_player.teleport(Util.getSpawn(m_player.getLocation().getWorld()));
+                Player player = Bukkit.getPlayer(m_player);
+                if (player == null) return;
+                if (!player.getScoreboardTags().contains("player")) return;
+                if (player.getLocation().getY() < -40 && player.getGameMode() != GameMode.SPECTATOR) {
+                    player.teleport(Util.getSpawn(player.getLocation().getWorld()));
                     onDeath();
                 }
             }
@@ -75,7 +78,7 @@ public class PlayerAddons {
     }
 
     public void bedBreak() {
-        m_player.sendMessage("Your bed was broken");
+        Bukkit.getPlayer(m_player).sendMessage("Your bed was broken");
         m_hasBed = false;
     }
 
@@ -84,12 +87,14 @@ public class PlayerAddons {
     }
 
     public void stopAllLoops(){
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
         m_ignoreTrap.ifPresent(BukkitRunnable::cancel);
         m_deathCheck.ifPresent(BukkitRunnable::cancel);
         if (m_onRespawn.isPresent()) {
             m_onRespawn.get().cancel();
-            m_player.setGameMode(GameMode.SURVIVAL);
-            m_player.teleport(Util.getSpawnerLocation(m_team));
+            player.setGameMode(GameMode.SURVIVAL);
+            player.teleport(Util.getSpawnerLocation(m_team));
         }
     }
 
@@ -98,12 +103,14 @@ public class PlayerAddons {
     }
 
     public void drankMilk() {
-        m_player.sendMessage("You now have 60 seconds of trap immunity");
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
+        player.sendMessage("You now have 60 seconds of trap immunity");
         m_ignoreTrap.ifPresent(BukkitRunnable::cancel);
         m_ignoreTrap = Optional.of(new BukkitRunnable() {
             @Override
             public void run() {
-                m_player.sendMessage("Your magic milk has worn off");
+                player.sendMessage("Your magic milk has worn off");
                 deleteRunnable();
             }
         });
@@ -119,7 +126,7 @@ public class PlayerAddons {
         return m_shearsUpgrade;
     }
 
-    public Player getPlayer() {
+    public UUID getPlayer() {
         return m_player;
     }
 
@@ -129,7 +136,9 @@ public class PlayerAddons {
 
     private void createStore(List<Inventory> storeInventories) {
         for (int i = 0; i < 9; i++) {
-            Inventory shop = Bukkit.createInventory(m_player, 54, "Shop");
+            Player player = Bukkit.getPlayer(m_player);
+            if (player == null) return;
+            Inventory shop = Bukkit.createInventory(player, 54, "Shop");
             createShopMenu(shop, i);
             createShop(shop, i);
             storeInventories.set(i,shop);
@@ -168,29 +177,31 @@ public class PlayerAddons {
     }
 
     private void setLowerArmor(Material material) {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
         switch (material) {
             case LEATHER_BOOTS:
-                m_player.getInventory().setLeggings(Util.setColor(getProt(Material.LEATHER_LEGGINGS), m_team.getColor()));
+                player.getInventory().setLeggings(Util.setColor(getProt(Material.LEATHER_LEGGINGS), m_team.getColor()));
                 break;
             case CHAINMAIL_BOOTS:
-                m_player.getInventory().setLeggings(getProt(Material.CHAINMAIL_LEGGINGS));
+                player.getInventory().setLeggings(getProt(Material.CHAINMAIL_LEGGINGS));
                 break;
             case IRON_BOOTS:
-                m_player.getInventory().setLeggings(getProt(Material.IRON_LEGGINGS));
+                player.getInventory().setLeggings(getProt(Material.IRON_LEGGINGS));
                 break;
             case DIAMOND_BOOTS:
-                m_player.getInventory().setLeggings(getProt(Material.DIAMOND_LEGGINGS));
+                player.getInventory().setLeggings(getProt(Material.DIAMOND_LEGGINGS));
                 break;
             case NETHERITE_BOOTS:
-                m_player.getInventory().setLeggings(getProt(Material.NETHERITE_LEGGINGS));
+                player.getInventory().setLeggings(getProt(Material.NETHERITE_LEGGINGS));
                 break;
             default:
                 throw new UnsupportedOperationException("Not real settable armor set");
         }
         if (material == Material.LEATHER_BOOTS) {
-            m_player.getInventory().setBoots(Util.setColor(getProt(material),m_team.getColor()));
+            player.getInventory().setBoots(Util.setColor(getProt(material),m_team.getColor()));
         } else {
-            m_player.getInventory().setBoots(getProt(material));
+            player.getInventory().setBoots(getProt(material));
         }
     }
 
@@ -373,33 +384,39 @@ public class PlayerAddons {
     }
 
     public void upgradeProt() {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
         m_protectionLevel++;
         menuOne(m_shop.get(0));
         menuFour(m_shop.get(3));
-        m_player.updateInventory();
+        player.updateInventory();
         setFullArmorSet();
     }
 
     private boolean setPickLevel(Material material) {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) throw new UnsupportedOperationException("No player");
         if (m_pickaxeLevel.isPresent()) {
             if (m_pickaxeLevel.get() == material) return false;
-            Util.clear(m_player.getInventory(), m_pickaxeLevel.get());
+            Util.clear(player.getInventory(), m_pickaxeLevel.get());
         }
         m_pickaxeLevel = Optional.of(material);
         menuOne(m_shop.get(0));
         menuFive(m_shop.get(4));
-        m_player.updateInventory();
+        player.updateInventory();
         return true;
     }
 
     public void onRespawn() {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
         m_onRespawn.get().cancel();
         m_onRespawn = Optional.empty();
-        m_player.setGameMode(GameMode.SURVIVAL);
-        m_player.setHealth(20);
+        player.setGameMode(GameMode.SURVIVAL);
+        player.setHealth(20);
         setFullArmorSet();
-        m_player.teleport(Util.getSpawnerLocation(m_team));
-        PlayerInventory inventory = m_player.getInventory();
+        player.teleport(Util.getSpawnerLocation(m_team));
+        PlayerInventory inventory = player.getInventory();
         inventory.addItem(getSharp(Material.WOODEN_SWORD));
         getPickaxeLowerLevel().ifPresent(material -> addItemPickaxe(inventory, material));
         getAxeLowerLevel().ifPresent(material -> addItemAxe(inventory, material));
@@ -421,12 +438,14 @@ public class PlayerAddons {
     }
 
     public void onDeath() {
-        m_player.getInventory().clear();
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
+        player.getInventory().clear();
         Util.clearAllEffects();
-        m_player.setGameMode(GameMode.SPECTATOR);
+        player.setGameMode(GameMode.SPECTATOR);
         m_onRespawn.ifPresent(BukkitRunnable::cancel);
         if (!m_hasBed) {
-            m_player.sendMessage("You are out of the game");
+            player.sendMessage("You are out of the game");
             alive = false;
             return;
         }
@@ -440,22 +459,26 @@ public class PlayerAddons {
     }
 
     private void setFullArmorSet() {
-        m_player.getInventory().setHelmet(Util.setColor(getProt(Material.LEATHER_HELMET), m_team.getColor()));
-        m_player.getInventory().setChestplate(Util.setColor(getProt(Material.LEATHER_CHESTPLATE), m_team.getColor()));
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
+        player.getInventory().setHelmet(Util.setColor(getProt(Material.LEATHER_HELMET), m_team.getColor()));
+        player.getInventory().setChestplate(Util.setColor(getProt(Material.LEATHER_CHESTPLATE), m_team.getColor()));
         setLowerArmor(m_armor);
     }
 
 
 
     private boolean setAxeLevel(Material material) {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) throw new UnsupportedOperationException("No player");
         if (m_axeLevel.isPresent()) {
             if (m_axeLevel.get() == material) return false;
-            Util.clear(m_player.getInventory(), m_axeLevel.get());
+            Util.clear(player.getInventory(), m_axeLevel.get());
         }
         m_axeLevel = Optional.of(material);
         menuOne(m_shop.get(0));
         menuFive(m_shop.get(4));
-        m_player.updateInventory();
+        player.updateInventory();
         return true;
     }
 
@@ -498,11 +521,13 @@ public class PlayerAddons {
     }
 
     public void openShopMenu(int menuNum) {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
         Optional<Integer> pastPane = m_currentShopMenu;
         if (pastPane.isPresent()) {
             if (pastPane.get() == menuNum) return;
         }
-        m_player.openInventory(m_shop.get(menuNum));
+        player.openInventory(m_shop.get(menuNum));
         m_currentShopMenu = Optional.of(menuNum);
     }
 
@@ -651,23 +676,25 @@ public class PlayerAddons {
     }
 
     public void gotSharpness() {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
         m_sharpness = true;
-        for (ItemStack item : m_player.getInventory().getContents()) {
+        for (ItemStack item : player.getInventory().getContents()) {
             if (item == null || !canGetSharp(item.getType())) continue;
             Util.addEnchantment(Enchantment.SHARPNESS,item);
         }
-        ItemStack offhand = m_player.getInventory().getItemInOffHand();
+        ItemStack offhand = player.getInventory().getItemInOffHand();
         if (canGetSharp(offhand.getType())){
             Util.addEnchantment(Enchantment.SHARPNESS,offhand);
         }
-        for (ItemStack item : m_player.getEnderChest().getContents()) {
+        for (ItemStack item : player.getEnderChest().getContents()) {
             if (item == null || !canGetSharp(item.getType())) continue;
             Util.addEnchantment(Enchantment.SHARPNESS,item);
         }
         menuOne(m_shop.get(0));
         menuThree(m_shop.get(2));
         menuFive(m_shop.get(4));
-        m_player.updateInventory();
+        player.updateInventory();
     }
 
     private boolean canGetSharp(Material material) {

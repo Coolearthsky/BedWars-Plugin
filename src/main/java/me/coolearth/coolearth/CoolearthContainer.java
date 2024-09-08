@@ -58,8 +58,8 @@ public class CoolearthContainer {
         blockListener = new BlockListener(playerInfo, blockManager, spongeManager);
         inventoryListener = new InventoryManager();
         deathListener = new DeathManager(playerInfo);
-        shopListener = new ShopListener(playerInfo);
-        foodListener = new FoodListener();
+        shopListener = new ShopListener(playerInfo, coolearth);
+        foodListener = new FoodListener(playerInfo);
         projectileListener = new ProjectileListener(eggManager, blockManager);
         mobListener = new MobListener(targetManager);
 

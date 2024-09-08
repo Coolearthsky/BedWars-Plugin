@@ -9,11 +9,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class PlayerInfo {
-    private final Map<Player, PlayerAddons> m_players = new HashMap<>();
+    private final Map<UUID, PlayerAddons> m_players = new HashMap<>();
     private final Map<Team, TeamInfo> m_teams = new HashMap<>();
     private final JavaPlugin m_coolearth;
+
     public PlayerInfo(JavaPlugin coolearth) {
         m_coolearth = coolearth;
     }
@@ -43,43 +45,46 @@ public class PlayerInfo {
             plat.put(team, new ArrayList<>());
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
+            UUID playerUUID = player.getUniqueId();
             Team team = Util.getTeam(player);
-            PlayerAddons value = new PlayerAddons(m_coolearth, team, player, true);
-            m_players.put(player, value);
+            PlayerAddons value = new PlayerAddons(m_coolearth, team, playerUUID);
+            m_players.put(playerUUID, value);
             if (team == Team.NONE) continue;
             plat.get(team).add(value);
         }
         for (Team team : Team.values()) {
             if (team == Team.NONE) continue;
-            Map<Player, PlayerAddons> tempMap = new HashMap<>();
+            Map<UUID, PlayerAddons> tempMap = new HashMap<>();
             for (PlayerAddons player : plat.get(team)) {
                 tempMap.put(player.getPlayer(), player);
             }
-            m_teams.put(team, new TeamInfo(team, m_coolearth, tempMap, m_players));
+            m_teams.put(team, new TeamInfo(team, m_coolearth, tempMap, () -> m_players));
         }
     }
 
     public void resetPlayers() {
         stopLoops();
-        Map<Team, ArrayList<PlayerAddons>> plat= new HashMap<>();
+        Map<Team, ArrayList<PlayerAddons>> plat = new HashMap<>();
         for (Team team : Team.values()) {
             if (team == Team.NONE) continue;
             plat.put(team, new ArrayList<>());
         }
-        for (Player player : m_players.keySet()) {
+        for (UUID playerUUID : m_players.keySet()) {
+            Player player = Bukkit.getPlayer(playerUUID);
+            if (player == null) continue;
             Team team = Util.getTeam(player);
-            PlayerAddons value = new PlayerAddons(m_coolearth,team, player, true);
-            m_players.replace(player, value);
+            PlayerAddons value = new PlayerAddons(m_coolearth, team, playerUUID);
+            m_players.replace(playerUUID, value);
             if (team == Team.NONE) continue;
             plat.get(team).add(value);
         }
         for (Team team : Team.values()) {
             if (team == Team.NONE) continue;
-            Map<Player, PlayerAddons> tempMap = new HashMap<>();
+            Map<UUID, PlayerAddons> tempMap = new HashMap<>();
             for (PlayerAddons player : plat.get(team)) {
                 tempMap.put(player.getPlayer(), player);
             }
-            m_teams.replace(team, new TeamInfo(team, m_coolearth,tempMap, m_players));
+            m_teams.replace(team, new TeamInfo(team, m_coolearth, tempMap, () -> m_players));
         }
     }
 
@@ -90,19 +95,24 @@ public class PlayerInfo {
     }
 
     public PlayerAddons getPlayersInfo(Player player) {
-       return m_players.get(player);
+        return m_players.get(player.getUniqueId());
     }
 
-    public Map<Player, PlayerAddons> getPlayers() {
+    public Map<Team, TeamInfo> getTeams() {
+        return m_teams;
+    }
+
+    public Map<UUID, PlayerAddons> getPlayers() {
         return m_players;
     }
 
     public void updateTeams(Player player, Team team) {
-        PlayerAddons playerAddons = m_players.get(player);
+        UUID playerUUID = player.getUniqueId();
+        PlayerAddons playerAddons = m_players.get(playerUUID);
         if (playerAddons == null) return;
-        m_teams.get(playerAddons.getTeam()).getMap().remove(player);
+        m_teams.get(playerAddons.getTeam()).getMap().remove(playerUUID);
         playerAddons.setTeam(team);
-        m_teams.get(team).getMap().put(player, playerAddons);
+        m_teams.get(team).getMap().put(playerUUID, playerAddons);
         Util.removeTeams(player);
         player.addScoreboardTag(team.getName());
     }

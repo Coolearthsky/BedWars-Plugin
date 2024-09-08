@@ -19,10 +19,6 @@ public class Stop implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can run this");
-            return false;
-        }
         m_stopGame.stop();
         return true;
     }

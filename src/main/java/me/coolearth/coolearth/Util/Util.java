@@ -4,6 +4,8 @@ import com.comphenix.protocol.wrappers.Pair;
 import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.math.MathUtil;
 import me.coolearth.coolearth.math.Rotation2d;
+import me.coolearth.coolearth.players.PlayerInfo;
+import me.coolearth.coolearth.players.TeamInfo;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -53,16 +55,20 @@ public class Util {
     public static void clearAllEffects() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (!player.getScoreboardTags().contains("player")) continue;
-            player.removePotionEffect(PotionEffectType.INVISIBILITY);
-            player.removePotionEffect(PotionEffectType.HASTE);
-            player.removePotionEffect(PotionEffectType.SPEED);
-            player.removePotionEffect(PotionEffectType.BLINDNESS);
-            player.removePotionEffect(PotionEffectType.SLOWNESS);
-            player.removePotionEffect(PotionEffectType.MINING_FATIGUE);
-            player.removePotionEffect(PotionEffectType.REGENERATION);
-            player.removePotionEffect(PotionEffectType.ABSORPTION);
-            player.removePotionEffect(PotionEffectType.JUMP_BOOST);
+            clearEffects(player);
         }
+    }
+
+    public static void clearEffects(Player player) {
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        player.removePotionEffect(PotionEffectType.HASTE);
+        player.removePotionEffect(PotionEffectType.SPEED);
+        player.removePotionEffect(PotionEffectType.BLINDNESS);
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+        player.removePotionEffect(PotionEffectType.MINING_FATIGUE);
+        player.removePotionEffect(PotionEffectType.REGENERATION);
+        player.removePotionEffect(PotionEffectType.ABSORPTION);
+        player.removePotionEffect(PotionEffectType.JUMP_BOOST);
     }
 
     public static void spawnItem(Location location, ItemStack material) {
@@ -403,6 +409,7 @@ public class Util {
         player.teleport(getSpawnerLocation(getTeam(player)));
         PlayerInventory inventory = player.getInventory();
         player.setGameMode(GameMode.SURVIVAL);
+        clearEffects(player);
         player.setHealth(20);
         inventory.clear();
         player.getEnderChest().clear();
@@ -459,6 +466,23 @@ public class Util {
         itemMeta.setLore(loreList);
         item.setItemMeta(itemMeta);
         return item;
+    }
+
+    public static Team getMostEmptyTeam(PlayerInfo playerInfo) {
+        int best = 999999;
+        for (TeamInfo team : playerInfo.getTeams().values()) {
+            int numberOfPeopleOnTeam = team.numberOfPeopleOnTeam();
+            if (numberOfPeopleOnTeam < best) {
+                best = numberOfPeopleOnTeam;
+            }
+        }
+        for (Team team : Team.values()) {
+            if (team.equals(Team.NONE)) continue;
+            if (playerInfo.getTeamInfo(team).numberOfPeopleOnTeam() == best) {
+                return team;
+            }
+        }
+        throw new UnsupportedOperationException("No team found");
     }
 
     private static ItemStack addNameAndLore(ItemStack item, String displayName, String realName, String firstLore, String secondLore, String... lores) {

@@ -1,5 +1,6 @@
 # BedWars-Plugin
 It's a bedwars plugin
-You might have to change something in the pom.xml for the Protocolib dependency as there is a hard coded system path
+
+At the moment it only works with a certain map, working on making this customizable for your custom maps in the future
 
 Oh, also this was coded on windows if that affects anything

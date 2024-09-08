@@ -114,7 +114,16 @@ public class Generators {
             }
             amount++;
         }
-        if (amount >= 8) return;
+        switch (material) {
+            case EMERALD:
+                if (amount >= 4) return;
+                break;
+            case DIAMOND:
+                if (amount >= 8) return;
+                break;
+            default:
+                throw new UnsupportedOperationException("Not a real item");
+        }
         Util.spawnItem(firstlocation, material);
     }
 }
