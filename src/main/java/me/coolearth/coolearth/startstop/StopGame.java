@@ -25,14 +25,15 @@ public class StopGame {
     }
 
     public void stop() {
+        GlobalVariables.gameEnded();
         m_playerInfo.stopLoops();
         m_playerInfo.stopAllPlayers();
         m_generators.resetAllLoops();
         m_eggManager.resetAllLoops();
         m_targetManager.resetAllLoops();
         m_blockManager.resetMap();
-        Util.clearAllEffects();
+        Util.clearChests();
+        Util.emptyPlayers();
         Util.killAllEntities(Item.class, IronGolem.class, Silverfish.class, Snowball.class, Egg.class);
-        GlobalVariables.gameEnded();
     }
 }

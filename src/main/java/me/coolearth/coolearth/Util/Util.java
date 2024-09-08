@@ -2,6 +2,7 @@ package me.coolearth.coolearth.Util;
 
 import com.comphenix.protocol.wrappers.Pair;
 import me.coolearth.coolearth.block.BlockManager;
+import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.math.MathUtil;
 import me.coolearth.coolearth.math.Rotation2d;
 import me.coolearth.coolearth.players.PlayerInfo;
@@ -9,6 +10,7 @@ import me.coolearth.coolearth.players.TeamInfo;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Chest;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.enchantments.Enchantment;
@@ -49,13 +51,6 @@ public class Util {
                 return Material.WHITE_WOOL;
             default:
                 throw new UnsupportedOperationException("Not a real team");
-        }
-    }
-
-    public static void clearAllEffects() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!player.getScoreboardTags().contains("player")) continue;
-            clearEffects(player);
         }
     }
 
@@ -122,6 +117,23 @@ public class Util {
             if (player.getScoreboardTags().contains(team.getName())) {
                 player.removeScoreboardTag(team.getName());
             }
+        }
+    }
+
+    public static void emptyPlayers() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!player.getScoreboardTags().contains("player")) continue;
+            clearEffects(player);
+            removeTeams(player);
+            player.getInventory().clear();
+            player.getEnderChest().clear();
+        }
+    }
+
+    public static void clearChests() {
+        for (Location location : Constants.getChests().keySet()) {
+            Chest blockData = (Chest) Bukkit.getWorld("world").getBlockState(location);
+            blockData.getBlockInventory().clear();
         }
     }
 
@@ -385,6 +397,7 @@ public class Util {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (!player.getScoreboardTags().contains("player")) continue;
             setupPlayerFromStart(player);
+            player.getEnderChest().clear();
         }
     }
 

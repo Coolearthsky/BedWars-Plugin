@@ -19,4 +19,8 @@ public class Constants {
     public static Team getChestTeam(Location location) {
         return chests.get(location);
     }
+
+    public static Map<Location, Team> getChests() {
+        return chests;
+    }
 }

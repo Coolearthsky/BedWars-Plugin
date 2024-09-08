@@ -8,11 +8,9 @@ import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
 import me.coolearth.coolearth.timed.SpongeManager;
-import me.coolearth.coolearth.timed.TargetManager;
 import org.bukkit.*;
 
 import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -36,7 +34,7 @@ public class BlockListener implements Listener {
     @EventHandler
     public void onChestClick(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
+        if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive() || !event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) return;
         Block clickedBlock = event.getClickedBlock();
         if (clickedBlock == null) return;
         if (clickedBlock.getType().equals(Material.CHEST)) {

@@ -151,6 +151,7 @@ public class TeamInfo {
             public void run() {
                 for (UUID uuid : m_playersOnTeam.keySet()) {
                     Player player = Bukkit.getPlayer(uuid);
+                    if (player == null) return;
                     if (Util.atBase(player.getLocation(), m_team)) player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 2, 0, false, false));
                 }
             }
@@ -175,6 +176,7 @@ public class TeamInfo {
             runnable.cancel();
         }
         m_spawners.clear();
+        m_trapCheck.cancel();
         m_healPool.ifPresent(BukkitRunnable::cancel);
         m_miningManiac.ifPresent(BukkitRunnable::cancel);
     }

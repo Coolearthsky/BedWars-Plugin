@@ -81,6 +81,7 @@ public class PlayerAddons {
     }
 
     public void bedBreak() {
+        Bukkit.getLogger().info("BRO");
         m_hasBed = false;
     }
 
@@ -147,8 +148,9 @@ public class PlayerAddons {
         }
     }
 
-    public void setTeam(Team team) {
+    public void setTeam(Team team, boolean hasBed) {
         m_team = team;
+        m_hasBed = hasBed;
         createStore(m_shop);
     }
 
@@ -443,7 +445,7 @@ public class PlayerAddons {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
         player.getInventory().clear();
-        Util.clearAllEffects();
+        Util.clearEffects(player);
         player.setGameMode(GameMode.SPECTATOR);
         m_onRespawn.ifPresent(BukkitRunnable::cancel);
         if (!m_hasBed) {
