@@ -3,6 +3,8 @@ package me.coolearth.coolearth.listener;
 import me.coolearth.coolearth.Util.Team;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.block.BlockManager;
+import me.coolearth.coolearth.global.Constants;
+import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
 import me.coolearth.coolearth.timed.SpongeManager;
@@ -10,6 +12,7 @@ import me.coolearth.coolearth.timed.TargetManager;
 import org.bukkit.*;
 
 import org.bukkit.block.Block;
+import org.bukkit.block.Chest;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -18,10 +21,6 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Vector;
-
-import java.util.*;
 
 public class BlockListener implements Listener {
     private final BlockManager m_blockManager;
@@ -32,6 +31,22 @@ public class BlockListener implements Listener {
         m_playerInfo = playerInfo;
         m_blockManager = blockManager;
         m_spongeManager = spongeManager;
+    }
+
+    @EventHandler
+    public void onChestClick(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
+        Block clickedBlock = event.getClickedBlock();
+        if (clickedBlock == null) return;
+        if (clickedBlock.getType().equals(Material.CHEST)) {
+            Team team = Constants.getChestTeam(clickedBlock.getLocation());
+            TeamInfo teamInfo = m_playerInfo.getTeamInfo(team);
+            if (team != Util.getTeam(player) && (teamInfo.isAnyoneOnTeamAlive() || teamInfo.hasBed())) {
+                event.setCancelled(true);
+                player.sendMessage("You cannot open opponent's chests till they are all eliminated and their bed is gone");
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -76,8 +91,12 @@ public class BlockListener implements Listener {
     public void onUse(PlayerInteractEvent event) {
         ItemStack item = event.getItem();
         if (item == null) return;
+        Block clickedBlock = event.getClickedBlock();
         if (item.getType().equals(Material.WATER_BUCKET) && event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
-            Block block = event.getClickedBlock().getRelative(event.getBlockFace());
+            if (clickedBlock != null) {
+                if (clickedBlock.getType().equals(Material.CHEST) && !event.getPlayer().isSneaking()) return;
+            }
+            Block block = clickedBlock.getRelative(event.getBlockFace());
             event.setCancelled(true);
             if (!m_blockManager.checkIfPlacable(block)) return;
             m_blockManager.add(block);

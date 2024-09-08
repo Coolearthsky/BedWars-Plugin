@@ -11,7 +11,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -22,7 +21,7 @@ import java.util.UUID;
 
 public class PlayerAddons {
     private Team m_team;
-    private boolean alive;
+    private boolean m_alive;
     private boolean m_hasBed;
     public List<Inventory> m_shop = new ArrayList<>();
     private Optional<Material> m_pickaxeLevel = Optional.empty();
@@ -44,7 +43,7 @@ public class PlayerAddons {
         m_player = player;
         m_protectionLevel = 0;
         m_hasBed = true;
-        alive = true;
+        m_alive = true;
         m_armor = Material.LEATHER_BOOTS;
         m_sharpness = false;
         m_shearsUpgrade = false;
@@ -59,6 +58,10 @@ public class PlayerAddons {
         m_pickaxeLevel = Optional.empty();
         m_axeLevel = Optional.empty();
         deathCheck();
+    }
+
+    public boolean isAlive() {
+        return m_alive;
     }
 
     private void deathCheck() {
@@ -78,7 +81,6 @@ public class PlayerAddons {
     }
 
     public void bedBreak() {
-        Bukkit.getPlayer(m_player).sendMessage("Your bed was broken");
         m_hasBed = false;
     }
 
@@ -446,7 +448,7 @@ public class PlayerAddons {
         m_onRespawn.ifPresent(BukkitRunnable::cancel);
         if (!m_hasBed) {
             player.sendMessage("You are out of the game");
-            alive = false;
+            m_alive = false;
             return;
         }
         m_onRespawn = Optional.of(new BukkitRunnable() {
