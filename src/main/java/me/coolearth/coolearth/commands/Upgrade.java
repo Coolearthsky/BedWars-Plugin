@@ -18,10 +18,6 @@ public class Upgrade implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can run this");
-            return false;
-        }
         TeamInfo teamInfo = m_shopListener.getTeamInfo(Team.get(args[0]));
         if (teamInfo == null) {
             sender.sendMessage("Match is not on");

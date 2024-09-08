@@ -1,6 +1,5 @@
 package me.coolearth.coolearth.commands;
 
-import me.coolearth.coolearth.listener.ShopListener;
 import me.coolearth.coolearth.Util.Team;
 import me.coolearth.coolearth.players.PlayerInfo;
 import org.bukkit.Bukkit;
@@ -11,9 +10,9 @@ import org.bukkit.entity.Player;
 
 public class Teams implements CommandExecutor {
 
-    private final PlayerInfo m_listener;
-    public Teams(PlayerInfo listener) {
-        m_listener = listener;
+    private final PlayerInfo m_playerInfo;
+    public Teams(PlayerInfo playerInfo) {
+        m_playerInfo = playerInfo;
     }
 
     @Override
@@ -26,7 +25,7 @@ public class Teams implements CommandExecutor {
             Player player = (Player) sender;
             Team team = Team.get(args[0]);
             if (team != Team.NONE) {
-                m_listener.updateTeams(player, team);
+                m_playerInfo.updateTeams(player, team);
                 return true;
             } else {
                 return false;
@@ -44,7 +43,7 @@ public class Teams implements CommandExecutor {
             if (player == null) return false;
             Team team = Team.get(args[1]);
             if (team != Team.NONE) {
-                m_listener.updateTeams(player,team);
+                m_playerInfo.updateTeams(player,team);
                 return true;
             } else {
                 return false;

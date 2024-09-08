@@ -2,6 +2,7 @@ package me.coolearth.coolearth.listener;
 
 import me.coolearth.coolearth.Util.Team;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.math.MathUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -27,7 +28,7 @@ public class InventoryManager implements Listener {
     @EventHandler
     public void onInventoryDrop(PlayerDropItemEvent event) {
         Player player = event.getPlayer();
-        if (!player.getScoreboardTags().contains("player")) return;
+        if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
         ItemStack item = event.getItemDrop().getItemStack();
         Material type = item.getType();
         if (getNotDroppable(type)) {
@@ -54,7 +55,7 @@ public class InventoryManager implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getCurrentItem() == null) return;
         Player player = (Player) event.getWhoClicked();
-        if (!player.getScoreboardTags().contains("player")) return;
+        if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
         if (player.getInventory().firstEmpty() == -1) {
             if (!checkIfContainsSwordIgnoringSlot(player, Optional.of(event.getSlot())) && (event.isRightClick() || event.isLeftClick()) && (event.getCurrentItem().getType() == Material.WOODEN_SWORD || event.getCurrentItem().getType() == Material.STONE_SWORD || event.getCurrentItem().getType() == Material.DIAMOND_SWORD || event.getCurrentItem().getType() == Material.IRON_SWORD || event.getCurrentItem().getType() == Material.NETHERITE_SWORD) && (event.getCursor().getType() != Material.STONE_SWORD && event.getCursor().getType() != Material.IRON_SWORD && event.getCursor().getType() != Material.NETHERITE_SWORD && event.getCursor().getType() != Material.DIAMOND_SWORD && !event.getCursor().getType().isAir())) {
                 event.setCancelled(true);
@@ -202,7 +203,7 @@ public class InventoryManager implements Listener {
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         Player player = (Player) event.getWhoClicked();
-        if (!player.getScoreboardTags().contains("player")) return;
+        if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
         if (event.getInventory() != player.getInventory()) {
             Material material = event.getOldCursor().getType();
             if (getNotDroppable(material) || checkIfSpecialSword(material)) {
@@ -215,7 +216,7 @@ public class InventoryManager implements Listener {
     @EventHandler
     public void onInventoryCloseEvent(InventoryCloseEvent event) {
         Player player = (Player) event.getPlayer();
-        if (!player.getScoreboardTags().contains("player")) return;
+        if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
         if (event.getInventory() != player.getInventory()) {
             Material material = player.getItemOnCursor().getType();
             if (checkIfSpecialSword(material)) {
@@ -228,7 +229,7 @@ public class InventoryManager implements Listener {
     public void onInventoryPickup(EntityPickupItemEvent event) {
         if (event.getEntityType() != EntityType.PLAYER) return;
         Player player = (Player) event.getEntity();
-        if (!player.getScoreboardTags().contains("player")) return;
+        if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
         ItemStack item = event.getItem().getItemStack();
         Material material = item.getType();
         if (checkIfSpecialSword(material)) {

@@ -1,7 +1,7 @@
 package me.coolearth.coolearth.listener;
 
-import me.coolearth.coolearth.PacketManager.ArmorPackets;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.math.MathUtil;
 import me.coolearth.coolearth.Util.Team;
 import me.coolearth.coolearth.menus.menuItems.Items;
@@ -22,68 +22,38 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
 
 public class ShopListener implements Listener {
     private final PlayerInfo m_playerInfo;
-    public ShopListener(PlayerInfo playerInfo) {
+    private final JavaPlugin m_coolearth;
+
+    public ShopListener(PlayerInfo playerInfo, JavaPlugin coolearth) {
         m_playerInfo = playerInfo;
+        m_coolearth = coolearth;
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-        if(!player.getScoreboardTags().contains("player")) {
-            player.addScoreboardTag("player");
-        }
-        Bukkit.getLogger().info(player.getAddress().getAddress().getAddress().toString());
-        Bukkit.getLogger().info(player.getAddress().toString());
-    }
-
-    @EventHandler
-    public void onEat(PlayerItemConsumeEvent event) {
-        event.setCancelled(true);
-        Player player = event.getPlayer();
-        PlayerInventory inventory = player.getInventory();
-        ItemStack item = event.getItem();
-        Material type = item.getType();
-        if (type == Material.POTION) {
-            inventory.setItem(event.getHand(), new ItemStack(Material.AIR));
-            PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
-            player.addPotionEffects(potionMeta.getCustomEffects());
-        }
-        else if (type == Material.GOLDEN_APPLE) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 20*5, 1, false, false));
-            player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 20*120, 0, false, false));
-            item.setAmount(item.getAmount()-1);
-            inventory.setItem(event.getHand(), item);
-        }
-        else if (type == Material.MILK_BUCKET) {
-            inventory.setItem(event.getHand(), new ItemStack(Material.AIR));
-            PlayerAddons playerAddons = m_playerInfo.getPlayers().get(player);
-            if (playerAddons != null) {
-                playerAddons.drankMilk();
-            }
-        }
-    }
-
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
-        TeamInfo teamInfo = m_playerInfo.getTeamInfo(Util.getTeam(player));
-        if (teamInfo == null) return;
-        teamInfo.getMap().remove(player);
-        m_playerInfo.getPlayers().remove(player);
+        Player player1 = event.getPlayer();
+        UUID player = player1.getUniqueId();
+        Bukkit.getLogger().info(player1.getAddress().getAddress().getAddress().toString());
+        Bukkit.getLogger().info(player1.getAddress().toString());
+        if (!player1.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive() || m_playerInfo.getPlayers().containsKey(player)) return;
+        Team team = Util.getMostEmptyTeam(m_playerInfo);
+        PlayerAddons value = new PlayerAddons(m_coolearth, team, player);
+        m_playerInfo.getPlayers().put(player, value);
+        m_playerInfo.getTeamInfo(team).getMap().put(player, value);
+        Util.removeTeams(player1);
+        player1.addScoreboardTag(team.getName());
+        Util.setupPlayerFromStart(player1);
     }
 
     @EventHandler

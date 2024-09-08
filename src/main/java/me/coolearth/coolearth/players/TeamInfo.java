@@ -18,6 +18,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 public class TeamInfo {
     private final Map<Material, BukkitRunnable> m_spawners;
@@ -28,20 +29,20 @@ public class TeamInfo {
     private int m_miningManiacLevel = 0;
     private boolean m_dragonBuff;
     private final List<Traps> m_traps ;
-    private final Map<Player, PlayerAddons> m_teamRelativeAddons;
-    private final Map<Player, PlayerAddons> m_allPlayers;
+    private final Map<UUID, PlayerAddons> m_playersOnTeam;
+    private final Supplier<Map<UUID, PlayerAddons>> m_allPlayers;
+    private final ArrayList<UUID> playersInBase;
     private int m_generatorLevel;
     private final Team m_team;
-    private final ArrayList<Player> playersInBase;
     private Optional<BukkitRunnable> m_healPool;
     private BukkitRunnable m_trapCheck;
     private final JavaPlugin m_coolearth;
-    public TeamInfo(Team team, JavaPlugin coolearth, Map<Player, PlayerAddons> teamRelativeAddons, Map<Player, PlayerAddons> allPlayers) {
+    public TeamInfo(Team team, JavaPlugin coolearth, Map<UUID, PlayerAddons> playersOnTeam, Supplier<Map<UUID, PlayerAddons>> allPlayers) {
         m_team = team;
         m_spawners = new HashMap<>();
         m_generatorLevel = 0;
         m_traps = new ArrayList<>();
-        m_teamRelativeAddons = teamRelativeAddons;
+        m_playersOnTeam = playersOnTeam;
         m_allPlayers = allPlayers;
         m_miningManiacLevel = 0;
         playersInBase = new ArrayList<>();
@@ -55,19 +56,28 @@ public class TeamInfo {
         trapCheck();
     }
 
+    public int numberOfPeopleOnTeam() {
+        return m_playersOnTeam.size();
+    }
+
+    public Team getTeam() {
+        return m_team;
+    }
+
     private void trapCheck() {
         m_trapCheck = new BukkitRunnable() {
             @Override
             public void run() {
                 if (m_traps.isEmpty()) return;
                 for (Player player : Bukkit.getOnlinePlayers()) {
+                    UUID playerUUID = player.getUniqueId();
                     if (Util.getTeam(player) == m_team) continue;
                     if (!Util.atBase(player.getLocation(), m_team)) {
-                        playersInBase.remove(player);
+                        playersInBase.remove(playerUUID);
                         continue;
                     }
-                    if (playersInBase.contains(player)) continue;
-                    if (m_allPlayers.get(player).ignoreTrap()) continue;
+                    if (playersInBase.contains(playerUUID)) continue;
+                    if (m_allPlayers.get().get(playerUUID).ignoreTrap()) continue;
                     triggerTrap(player);
                 }
             }
@@ -127,7 +137,8 @@ public class TeamInfo {
         BukkitRunnable runnable = new BukkitRunnable() {
             @Override
             public void run() {
-                for (Player player : m_teamRelativeAddons.keySet()) {
+                for (UUID uuid : m_playersOnTeam.keySet()) {
+                    Player player = Bukkit.getPlayer(uuid);
                     if (Util.atBase(player.getLocation(), m_team)) player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 2, 0, false, false));
                 }
             }
@@ -281,24 +292,24 @@ public class TeamInfo {
         }
     }
 
-    private void upgradeToSharpness() {
+    public void upgradeToSharpness() {
         m_sharpness = true;
-        for (PlayerAddons addon : m_teamRelativeAddons.values()) {
+        for (PlayerAddons addon : m_playersOnTeam.values()) {
             addon.gotSharpness();
         }
         createUpgrades();
     }
 
-    private void upgradeProt() {
+    public void upgradeProt() {
         m_protectionLevel++;
-        for (PlayerAddons addon : m_teamRelativeAddons.values()) {
+        for (PlayerAddons addon : m_playersOnTeam.values()) {
             addon.upgradeProt();
         }
         createUpgrades();
     }
 
     public void bedBreak() {
-        for (PlayerAddons addon : m_teamRelativeAddons.values()) {
+        for (PlayerAddons addon : m_playersOnTeam.values()) {
             addon.bedBreak();
         }
     }
@@ -314,8 +325,11 @@ public class TeamInfo {
         m_miningManiac = Optional.of(new BukkitRunnable() {
             @Override
             public void run() {
-                for (PlayerAddons playerAddons : m_teamRelativeAddons.values()) {
-                    playerAddons.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 2, value-1));
+                for (PlayerAddons playerAddons : m_playersOnTeam.values()) {
+                    Player player = Bukkit.getPlayer(playerAddons.getPlayer());
+                    if (player != null) {
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 2, value-1));
+                    }
                 }
             }
         });
@@ -323,35 +337,48 @@ public class TeamInfo {
     }
 
     private void triggerTrap(Player player) {
-        playersInBase.add(player);
+        UUID playerUUID = player.getUniqueId();
+        playersInBase.add(playerUUID);
         Traps traps = m_traps.get(0);
         m_traps.remove(0);
         createUpgrades();
-            switch (traps) {
+        switch (traps) {
             case BLINDNESS_TRAP:
-                for (Player offense : m_teamRelativeAddons.keySet()) {
-                    offense.sendMessage("Your blindness trap was triggered!");
+                for (UUID offenseUUID : m_playersOnTeam.keySet()) {
+                    Player offense = Bukkit.getPlayer(offenseUUID);
+                    if (offense != null) {
+                        offense.sendMessage("Your blindness trap was triggered!");
+                    }
                 }
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20*8, 0, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20*8, 0, false, false));
                 return;
             case COUNTER_OFFENSE_TRAP:
-                for (Player offense : m_teamRelativeAddons.keySet()) {
-                    offense.sendMessage("Your counter offense trap was triggered!");
-                    if (!Util.atBase(offense.getLocation(), m_team)) continue;
-                    offense.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20*15, 1, false, false));
-                    offense.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 20*15,1, false, false));
+                for (UUID offenseUUID : m_playersOnTeam.keySet()) {
+                    Player offense = Bukkit.getPlayer(offenseUUID);
+                    if (offense != null) {
+                        offense.sendMessage("Your counter offense trap was triggered!");
+                        if (!Util.atBase(offense.getLocation(), m_team)) continue;
+                        offense.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20*15, 1, false, false));
+                        offense.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 20*15,1, false, false));
+                    }
                 }
                 return;
             case MINING_FATIGUE_TRAP:
-                for (Player offense : m_teamRelativeAddons.keySet()) {
-                    offense.sendMessage("Your mining fatigue trap was triggered!");
+                for (UUID offenseUUID : m_playersOnTeam.keySet()) {
+                    Player offense = Bukkit.getPlayer(offenseUUID);
+                    if (offense != null) {
+                        offense.sendMessage("Your mining fatigue trap was triggered!");
+                    }
                 }
                 player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 20*10, 0, false, false));
                 return;
             case ALARM_TRAP:
-                for (Player offense : m_teamRelativeAddons.keySet()) {
-                    offense.sendMessage(player.getName() + " from the " + Util.getTeam(player).getName() +" team triggered your alarm trap!");
+                for (UUID offenseUUID : m_playersOnTeam.keySet()) {
+                    Player offense = Bukkit.getPlayer(offenseUUID);
+                    if (offense != null) {
+                        offense.sendMessage(player.getName() + " from the " + Util.getTeam(player).getName() +" team triggered your alarm trap!");
+                    }
                 }
                 player.removePotionEffect(PotionEffectType.INVISIBILITY);
                 return;
@@ -398,13 +425,13 @@ public class TeamInfo {
         Util.addToShop(inventory, startNum, itemStacks);
     }
 
-    public Map<Player, PlayerAddons> getMap() {
-        return m_teamRelativeAddons;
+    public Map<UUID, PlayerAddons> getMap() {
+        return m_playersOnTeam;
     }
 
     public void addToMap(PlayerAddons teamRelativeAddons) {
-        Player player = teamRelativeAddons.getPlayer();
-        m_teamRelativeAddons.put(player, teamRelativeAddons);
+        UUID playerUUID = teamRelativeAddons.getPlayer();
+        m_playersOnTeam.put(playerUUID, teamRelativeAddons);
     }
 
     public void upgradeToNextLevel() {

@@ -16,10 +16,6 @@ public class Start implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can run this");
-            return false;
-        }
         m_startGame.start();
         return true;
     }
