@@ -27,6 +27,7 @@ public class TeamInfo {
     private boolean m_sharpness;
     private Optional<BukkitRunnable> m_miningManiac;
     private int m_miningManiacLevel = 0;
+    private boolean m_hasBed;
     private boolean m_dragonBuff;
     private final List<Traps> m_traps ;
     private final Map<UUID, PlayerAddons> m_playersOnTeam;
@@ -37,6 +38,7 @@ public class TeamInfo {
     private Optional<BukkitRunnable> m_healPool;
     private BukkitRunnable m_trapCheck;
     private final JavaPlugin m_coolearth;
+
     public TeamInfo(Team team, JavaPlugin coolearth, Map<UUID, PlayerAddons> playersOnTeam, Supplier<Map<UUID, PlayerAddons>> allPlayers) {
         m_team = team;
         m_spawners = new HashMap<>();
@@ -45,6 +47,7 @@ public class TeamInfo {
         m_playersOnTeam = playersOnTeam;
         m_allPlayers = allPlayers;
         m_miningManiacLevel = 0;
+        m_hasBed = true;
         playersInBase = new ArrayList<>();
         m_dragonBuff = false;
         m_sharpness = false;
@@ -58,6 +61,15 @@ public class TeamInfo {
 
     public int numberOfPeopleOnTeam() {
         return m_playersOnTeam.size();
+    }
+
+    public boolean isAnyoneOnTeamAlive() {
+        for (PlayerAddons playerAddons : m_playersOnTeam.values()) {
+            if (playerAddons.isAlive()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Team getTeam() {
@@ -309,9 +321,17 @@ public class TeamInfo {
     }
 
     public void bedBreak() {
-        for (PlayerAddons addon : m_playersOnTeam.values()) {
-            addon.bedBreak();
+        m_hasBed = false;
+        for (PlayerAddons player : m_playersOnTeam.values()) {
+            player.bedBreak();
+            Player player1 = Bukkit.getPlayer(player.getPlayer());
+            if (!player1.isOnline()) continue;
+            player1.sendMessage("Your bed was broken");
         }
+    }
+
+    public boolean hasBed() {
+        return m_hasBed;
     }
 
     private void upgradeManiacMiner() {
