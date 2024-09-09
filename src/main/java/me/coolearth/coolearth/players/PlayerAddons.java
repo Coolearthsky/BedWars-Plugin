@@ -2,7 +2,8 @@ package me.coolearth.coolearth.players;
 
 import me.coolearth.coolearth.Util.Trio;
 import me.coolearth.coolearth.Util.Util;
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
+import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.menus.menuItems.Items;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
@@ -20,7 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class PlayerAddons {
-    private Team m_team;
+    private TeamUtil m_team;
     private boolean m_alive;
     private boolean m_hasBed;
     public List<Inventory> m_shop = new ArrayList<>();
@@ -37,7 +38,7 @@ public class PlayerAddons {
     private Optional<BukkitRunnable> m_deathCheck;
     private Optional<BukkitRunnable> m_onRespawn;
 
-    public PlayerAddons(JavaPlugin coolearth, Team team, UUID player) {
+    public PlayerAddons(JavaPlugin coolearth, TeamUtil team, UUID player) {
         m_team = team;
         m_coolearth = coolearth;
         m_player = player;
@@ -72,7 +73,7 @@ public class PlayerAddons {
                 if (player == null) return;
                 if (!player.getScoreboardTags().contains("player")) return;
                 if (player.getLocation().getY() < -40 && player.getGameMode() != GameMode.SPECTATOR) {
-                    player.teleport(Util.getSpawn(player.getLocation().getWorld()));
+                    player.teleport(Constants.getSpawn());
                     onDeath();
                 }
             }
@@ -96,7 +97,7 @@ public class PlayerAddons {
         if (m_onRespawn.isPresent()) {
             m_onRespawn.get().cancel();
             player.setGameMode(GameMode.SURVIVAL);
-            player.teleport(Util.getSpawnerLocation(m_team));
+            player.teleport(Constants.getTeamGeneratorLocation(m_team));
         }
     }
 
@@ -147,12 +148,13 @@ public class PlayerAddons {
         }
     }
 
-    public void setTeam(Team team) {
+    public void setTeam(TeamUtil team, boolean hasBed) {
         m_team = team;
+        m_hasBed = hasBed;
         createStore(m_shop);
     }
 
-    public Team getTeam() {
+    public TeamUtil getTeam() {
         return m_team;
     }
 
@@ -417,7 +419,7 @@ public class PlayerAddons {
         player.setGameMode(GameMode.SURVIVAL);
         player.setHealth(20);
         setFullArmorSet();
-        player.teleport(Util.getSpawnerLocation(m_team));
+        player.teleport(Constants.getTeamGeneratorLocation(m_team));
         PlayerInventory inventory = player.getInventory();
         inventory.addItem(getSharp(Material.WOODEN_SWORD));
         getPickaxeLowerLevel().ifPresent(material -> addItemPickaxe(inventory, material));
@@ -443,7 +445,7 @@ public class PlayerAddons {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
         player.getInventory().clear();
-        Util.clearAllEffects();
+        Util.clearEffects(player);
         player.setGameMode(GameMode.SPECTATOR);
         m_onRespawn.ifPresent(BukkitRunnable::cancel);
         if (!m_hasBed) {

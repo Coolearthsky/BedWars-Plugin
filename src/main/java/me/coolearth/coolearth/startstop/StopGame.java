@@ -4,6 +4,7 @@ import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
+import me.coolearth.coolearth.scoreboard.Board;
 import me.coolearth.coolearth.timed.EggManager;
 import me.coolearth.coolearth.timed.Generators;
 import me.coolearth.coolearth.timed.TargetManager;
@@ -25,14 +26,15 @@ public class StopGame {
     }
 
     public void stop() {
+        GlobalVariables.gameEnded();
         m_playerInfo.stopLoops();
         m_playerInfo.stopAllPlayers();
         m_generators.resetAllLoops();
         m_eggManager.resetAllLoops();
         m_targetManager.resetAllLoops();
         m_blockManager.resetMap();
-        Util.clearAllEffects();
+        Util.clearChests();
+        Util.emptyPlayers();
         Util.killAllEntities(Item.class, IronGolem.class, Silverfish.class, Snowball.class, Egg.class);
-        GlobalVariables.gameEnded();
     }
 }

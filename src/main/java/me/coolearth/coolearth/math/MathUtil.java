@@ -9,21 +9,21 @@ import java.util.List;
 public class MathUtil {
 
     public static boolean isBetweenTwoLocations(Location blockLocation, Location firstlocation, Location secondlocation) {
-        List<Integer> firstxyz = convertLocationToListWithoutRotation(firstlocation);
-        List<Integer> secondxyz = convertLocationToListWithoutRotation(secondlocation);
-        List<Integer> blockxyz = convertLocationToListWithoutRotation(blockLocation);
+        List<Double> firstxyz = convertLocationToListWithoutRotation(firstlocation);
+        List<Double> secondxyz = convertLocationToListWithoutRotation(secondlocation);
+        List<Double> blockxyz = convertLocationToListWithoutRotation(blockLocation);
         for (int i = 0; i < 3; i++) {
-            int firstcord = firstxyz.get(i);
-            int secondcord = secondxyz.get(i);
-            int blockcord = blockxyz.get(i);
-            if (!isBetweenTwoInts(blockcord, firstcord, secondcord)) {
+            double firstcord = firstxyz.get(i);
+            double secondcord = secondxyz.get(i);
+            double blockcord = blockxyz.get(i);
+            if (!isBetweenTwoDoubles(blockcord, firstcord, secondcord)) {
                 return false;
             }
         }
         return true;
     }
 
-    public static boolean isBetweenTwoInts(int num, int firstNum, int secondNum) {
+    public static boolean isBetweenTwoDoubles(double num, double firstNum, double secondNum) {
         if (firstNum<secondNum) {
             return firstNum <= num && num <= secondNum;
         } else {
@@ -43,11 +43,11 @@ public class MathUtil {
         return new Location(world, offsetX + (int) Math.round(newRot.getSin() * hypot), y, offsetZ + (int) Math.round(newRot.getCos()* hypot));
     }
 
-    public static List<Integer> convertLocationToListWithoutRotation(Location location) {
-        List<Integer> xyz = new ArrayList<>();
-        xyz.add(location.getBlockX());
-        xyz.add(location.getBlockY());
-        xyz.add(location.getBlockZ());
+    public static List<Double> convertLocationToListWithoutRotation(Location location) {
+        List<Double> xyz = new ArrayList<>();
+        xyz.add(location.getX());
+        xyz.add(location.getY());
+        xyz.add(location.getZ());
         return xyz;
     }
 }

@@ -1,7 +1,9 @@
 package me.coolearth.coolearth.commands;
 
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
+import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
+import me.coolearth.coolearth.scoreboard.Board;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -11,8 +13,10 @@ import org.bukkit.entity.Player;
 public class Teams implements CommandExecutor {
 
     private final PlayerInfo m_playerInfo;
-    public Teams(PlayerInfo playerInfo) {
+    private final Board m_board;
+    public Teams(PlayerInfo playerInfo, Board board) {
         m_playerInfo = playerInfo;
+        m_board = board;
     }
 
     @Override
@@ -21,11 +25,16 @@ public class Teams implements CommandExecutor {
             sender.sendMessage("Only players can run this");
             return false;
         }
+        if (!GlobalVariables.isGameActive()) {
+            sender.sendMessage("The game must be active to activate this command");
+            return false;
+        }
         if (args.length <= 1) {
             Player player = (Player) sender;
-            Team team = Team.get(args[0]);
-            if (team != Team.NONE) {
+            TeamUtil team = TeamUtil.get(args[0]);
+            if (team != TeamUtil.NONE) {
                 m_playerInfo.updateTeams(player, team);
+                m_board.updateAllScoreboards();
                 return true;
             } else {
                 return false;
@@ -41,9 +50,10 @@ public class Teams implements CommandExecutor {
                 }
             }
             if (player == null) return false;
-            Team team = Team.get(args[1]);
-            if (team != Team.NONE) {
+            TeamUtil team = TeamUtil.get(args[1]);
+            if (team != TeamUtil.NONE) {
                 m_playerInfo.updateTeams(player,team);
+                m_board.updateAllScoreboards();
                 return true;
             } else {
                 return false;

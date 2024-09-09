@@ -1,13 +1,12 @@
 package me.coolearth.coolearth.commands;
 
-import me.coolearth.coolearth.listener.ShopListener;
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
+import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 public class Upgrade implements CommandExecutor {
 
@@ -18,7 +17,11 @@ public class Upgrade implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        TeamInfo teamInfo = m_shopListener.getTeamInfo(Team.get(args[0]));
+        if (!GlobalVariables.isGameActive()) {
+            sender.sendMessage("The game must be active to activate this command");
+            return false;
+        }
+        TeamInfo teamInfo = m_shopListener.getTeamInfo(TeamUtil.get(args[0]));
         if (teamInfo == null) {
             sender.sendMessage("Match is not on");
             return false;

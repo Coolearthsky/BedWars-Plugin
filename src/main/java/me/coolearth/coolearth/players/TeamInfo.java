@@ -1,10 +1,12 @@
 package me.coolearth.coolearth.players;
 
 import com.comphenix.protocol.wrappers.Pair;
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.menus.menuItems.Traps;
 import me.coolearth.coolearth.menus.menuItems.Upgrades;
+import me.coolearth.coolearth.scoreboard.Board;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Item;
@@ -34,12 +36,12 @@ public class TeamInfo {
     private final Supplier<Map<UUID, PlayerAddons>> m_allPlayers;
     private final ArrayList<UUID> playersInBase;
     private int m_generatorLevel;
-    private final Team m_team;
+    private final TeamUtil m_team;
     private Optional<BukkitRunnable> m_healPool;
     private BukkitRunnable m_trapCheck;
     private final JavaPlugin m_coolearth;
 
-    public TeamInfo(Team team, JavaPlugin coolearth, Map<UUID, PlayerAddons> playersOnTeam, Supplier<Map<UUID, PlayerAddons>> allPlayers) {
+    public TeamInfo(TeamUtil team, JavaPlugin coolearth, Map<UUID, PlayerAddons> playersOnTeam, Supplier<Map<UUID, PlayerAddons>> allPlayers) {
         m_team = team;
         m_spawners = new HashMap<>();
         m_generatorLevel = 0;
@@ -72,7 +74,7 @@ public class TeamInfo {
         return false;
     }
 
-    public Team getTeam() {
+    public TeamUtil getTeam() {
         return m_team;
     }
 
@@ -151,6 +153,7 @@ public class TeamInfo {
             public void run() {
                 for (UUID uuid : m_playersOnTeam.keySet()) {
                     Player player = Bukkit.getPlayer(uuid);
+                    if (player == null) return;
                     if (Util.atBase(player.getLocation(), m_team)) player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 2, 0, false, false));
                 }
             }
@@ -175,6 +178,7 @@ public class TeamInfo {
             runnable.cancel();
         }
         m_spawners.clear();
+        m_trapCheck.cancel();
         m_healPool.ifPresent(BukkitRunnable::cancel);
         m_miningManiac.ifPresent(BukkitRunnable::cancel);
     }
@@ -499,7 +503,7 @@ public class TeamInfo {
                 for (Item entity: Bukkit.getWorld("world").getEntitiesByClass(Item.class)) {
                     ItemStack itemStack = entity.getItemStack();
                     if (pair != itemStack.getType()) continue;
-                    if (!Util.locationsEqualIgnoringRot(Util.getSpawnerLocation(m_team), entity.getLocation())) {
+                    if (!Util.locationsEqualIgnoringRot(Constants.getTeamGeneratorLocation(m_team), entity.getLocation())) {
                         continue;
                     }
                     amount++;
@@ -532,6 +536,6 @@ public class TeamInfo {
     }
     
     private void setItem(Material material) {
-        Util.spawnItem(Util.getSpawnerLocation(m_team), material);
+        Util.spawnItem(Constants.getTeamGeneratorLocation(m_team), material);
     }
 }

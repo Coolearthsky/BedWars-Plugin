@@ -5,6 +5,7 @@ import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.commands.*;
 import me.coolearth.coolearth.listener.*;
 import me.coolearth.coolearth.players.PlayerInfo;
+import me.coolearth.coolearth.scoreboard.Board;
 import me.coolearth.coolearth.startstop.StartGame;
 import me.coolearth.coolearth.startstop.StopGame;
 import me.coolearth.coolearth.timed.EggManager;
@@ -13,6 +14,7 @@ import me.coolearth.coolearth.timed.SpongeManager;
 import me.coolearth.coolearth.timed.TargetManager;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 public class CoolearthContainer {
 
@@ -27,9 +29,13 @@ public class CoolearthContainer {
     private final ShopListener shopListener;
     private final DeathManager deathListener;
     private final InventoryManager inventoryListener;
+    private final PlayerListener playerListener;
     private final ProjectileListener projectileListener;
     private final FoodListener foodListener;
     private final MobListener mobListener;
+
+    //Scoreboard
+    private final Board board;
 
     private final PlayerInfo playerInfo;
     private final BlockManager blockManager;
@@ -41,7 +47,6 @@ public class CoolearthContainer {
         if (Bukkit.getPluginManager().getPlugin("ProtocolLib") != null) {
             ArmorPackets.register();
         }
-
         //Block manager, manages certain areas and where players can place blocks
         blockManager = new BlockManager();
 
@@ -54,11 +59,15 @@ public class CoolearthContainer {
         //Player info
         playerInfo = new PlayerInfo(coolearth);
 
+        //Scoreboard
+        board = new Board(playerInfo);
+
         //Listeners
-        blockListener = new BlockListener(playerInfo, blockManager, spongeManager);
+        blockListener = new BlockListener(playerInfo, blockManager, spongeManager, board);
         inventoryListener = new InventoryManager();
         deathListener = new DeathManager(playerInfo);
-        shopListener = new ShopListener(playerInfo, coolearth);
+        playerListener = new PlayerListener(playerInfo, board, coolearth);
+        shopListener = new ShopListener(playerInfo);
         foodListener = new FoodListener(playerInfo);
         projectileListener = new ProjectileListener(eggManager, blockManager);
         mobListener = new MobListener(targetManager);
@@ -68,12 +77,13 @@ public class CoolearthContainer {
         Bukkit.getPluginManager().registerEvents(mobListener,coolearth);
         Bukkit.getPluginManager().registerEvents(shopListener,coolearth);
         Bukkit.getPluginManager().registerEvents(deathListener,coolearth);
+        Bukkit.getPluginManager().registerEvents(playerListener,coolearth);
         Bukkit.getPluginManager().registerEvents(inventoryListener,coolearth);
         Bukkit.getPluginManager().registerEvents(foodListener,coolearth);
         Bukkit.getPluginManager().registerEvents(projectileListener,coolearth);
 
         //Start and stopgame controllers
-        startGame = new StartGame(generators, playerInfo);
+        startGame = new StartGame(generators, playerInfo, board);
         stopGame = new StopGame(playerInfo, blockManager, generators, eggManager, targetManager);
 
         //Creating start/stop commands
@@ -83,7 +93,10 @@ public class CoolearthContainer {
 
         //Team based commands
         Upgrade upgrade = new Upgrade(playerInfo);
-        Teams teams = new Teams(playerInfo);
+        Teams teams = new Teams(playerInfo, board);
+
+        //Scoreboard
+
 
         //Registering commands
         coolearth.getCommand("reset").setExecutor(reset);

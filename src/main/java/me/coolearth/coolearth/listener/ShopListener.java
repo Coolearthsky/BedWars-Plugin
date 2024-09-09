@@ -3,7 +3,7 @@ package me.coolearth.coolearth.listener;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.math.MathUtil;
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.menus.menuItems.Items;
 import me.coolearth.coolearth.menus.menuItems.Traps;
 import me.coolearth.coolearth.menus.menuItems.Upgrades;
@@ -33,27 +33,9 @@ import java.util.*;
 
 public class ShopListener implements Listener {
     private final PlayerInfo m_playerInfo;
-    private final JavaPlugin m_coolearth;
 
-    public ShopListener(PlayerInfo playerInfo, JavaPlugin coolearth) {
+    public ShopListener(PlayerInfo playerInfo) {
         m_playerInfo = playerInfo;
-        m_coolearth = coolearth;
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        Player player1 = event.getPlayer();
-        UUID player = player1.getUniqueId();
-        Bukkit.getLogger().info(player1.getAddress().getAddress().getAddress().toString());
-        Bukkit.getLogger().info(player1.getAddress().toString());
-        if (!player1.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive() || m_playerInfo.getPlayers().containsKey(player)) return;
-        Team team = Util.getMostEmptyTeam(m_playerInfo);
-        PlayerAddons value = new PlayerAddons(m_coolearth, team, player);
-        m_playerInfo.getPlayers().put(player, value);
-        m_playerInfo.getTeamInfo(team).getMap().put(player, value);
-        Util.removeTeams(player1);
-        player1.addScoreboardTag(team.getName());
-        Util.setupPlayerFromStart(player1);
     }
 
     @EventHandler
@@ -111,7 +93,7 @@ public class ShopListener implements Listener {
         if (event.getCurrentItem() == null) return;
         String name = event.getCurrentItem().getItemMeta().getItemName();
         Traps trap = Traps.get(name);
-        Team team = Util.getTeam(player);
+        TeamUtil team = Util.getTeam(player);
         Upgrades upgrades = Upgrades.get(name);
         TeamInfo teamBased = m_playerInfo.getTeamInfo(team);
         if (teamBased == null) throw new UnsupportedOperationException("No team info");
@@ -149,9 +131,9 @@ public class ShopListener implements Listener {
         if (event.getAction() == InventoryAction.HOTBAR_SWAP) return;
         PlayerAddons e = m_playerInfo.getPlayersInfo(player);
         if (e == null) return;
-        if (MathUtil.isBetweenTwoInts(slot,0,8)) {
+        if (MathUtil.isBetweenTwoDoubles(slot,0,8)) {
             e.openShopMenu(slot);
-        } else if (MathUtil.isBetweenTwoInts(slot,9,17)) {
+        } else if (MathUtil.isBetweenTwoDoubles(slot,9,17)) {
             e.openShopMenu(slot-9);
         } else {
             if (event.getCurrentItem() == null) return;

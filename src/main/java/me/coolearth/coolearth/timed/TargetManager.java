@@ -1,12 +1,8 @@
 package me.coolearth.coolearth.timed;
 
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.*;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -14,7 +10,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class TargetManager {
     private final JavaPlugin m_coolearth;
@@ -25,11 +20,11 @@ public class TargetManager {
     }
 
     public void addLivingEntity(Mob entity, Player player) {
-        Team team = Util.getTeam(player);
-        if (team == Team.NONE) return;
+        TeamUtil team = Util.getTeam(player);
+        if (team == TeamUtil.NONE) return;
         entity.addScoreboardTag(team.getName());
         BukkitRunnable runnable = new BukkitRunnable() {
-            private final Team m_team = team;
+            private final TeamUtil m_team = team;
             @Override
             public void run() {
                 LivingEntity currentTarget = null;
@@ -40,8 +35,8 @@ public class TargetManager {
                     if (!(badEntity instanceof LivingEntity)) {
                         continue;
                     }
-                    Team opponentTeam = Util.getTeamEntity(badEntity);
-                    if (opponentTeam == m_team || opponentTeam == Team.NONE) continue;
+                    TeamUtil opponentTeam = Util.getTeamEntity(badEntity);
+                    if (opponentTeam == m_team || opponentTeam == TeamUtil.NONE) continue;
                     LivingEntity livingEntity = (LivingEntity) badEntity;
                     if (livingEntity.hasPotionEffect(PotionEffectType.INVISIBILITY)) continue;
                     double distanceSquared = entity.getLocation().distanceSquared(livingEntity.getLocation());
