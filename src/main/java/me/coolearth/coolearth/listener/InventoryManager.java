@@ -1,7 +1,8 @@
 package me.coolearth.coolearth.listener;
 
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.math.MathUtil;
 import org.bukkit.Bukkit;
@@ -238,8 +239,8 @@ public class InventoryManager implements Listener {
                 player.setItemOnCursor(new ItemStack(Material.AIR));
             }
         } else if (material == Material.IRON_INGOT || material == Material.GOLD_INGOT || material == Material.EMERALD) {
-            Team team = inGenerator(player.getLocation());
-            if (team== Team.NONE) return;
+            TeamUtil team = inGenerator(player.getLocation());
+            if (team== TeamUtil.NONE) return;
             for (Player newPlayer : Bukkit.getOnlinePlayers()) {
                 if (newPlayer == player) continue;
                 if (inGenerator(newPlayer.getLocation(), team)) {
@@ -253,26 +254,18 @@ public class InventoryManager implements Listener {
      * @param playerLocation Location of the player
      * @return The generator the player is in, returns NONE if player is not in a generator
      */
-    private Team inGenerator(Location playerLocation) {
+    private TeamUtil inGenerator(Location playerLocation) {
         World world = Bukkit.getWorld("world");
-        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,42, 6,32), new Location(world,44, 9, 30))) return Team.RED;
-        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world, -27, 6, 102), new Location(world, -29, 9, 100))) return Team.YELLOW;
-        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,-97, 6 ,30), new Location(world,-99 , 9,32))) return Team.GREEN;
-        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,-27, 6, -39), new Location(world,-29 ,9, -41))) return Team.BLUE;
-        return Team.NONE;
+        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,42, 6,32), new Location(world,44, 9, 30))) return TeamUtil.RED;
+        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world, -27, 6, 102), new Location(world, -29, 9, 100))) return TeamUtil.YELLOW;
+        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,-97, 6 ,30), new Location(world,-99 , 9,32))) return TeamUtil.GREEN;
+        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,-27, 6, -39), new Location(world,-29 ,9, -41))) return TeamUtil.BLUE;
+        return TeamUtil.NONE;
     }
 
-    private boolean inGenerator(Location playerLocation, Team team) {
-        World world = Bukkit.getWorld("world");
-        switch (team) {
-            case RED:return  (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,42, 6,32), new Location(world,44, 9, 30)));
-            case YELLOW: return (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world, -27, 6, 102), new Location(world, -29, 9, 100)));
-            case GREEN: return (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,-97, 6 ,30), new Location(world,-99 , 9,32))) ;
-            case BLUE:return  (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,-27, 6, -39), new Location(world,-29 ,9, -41)));
-            case NONE:
-            default:
-                throw new UnsupportedOperationException("Not a generator");
-        }
+    private boolean inGenerator(Location playerLocation, TeamUtil team) {
+        Location spawnerLoc = Constants.getTeamGeneratorLocation(team);
+        return MathUtil.isBetweenTwoLocations(playerLocation,spawnerLoc.add(-1.5,0,-1.5),spawnerLoc.add(1.5,3.5,1.5));
     }
 
     private boolean test(Player player, ItemStack droppedItem) {

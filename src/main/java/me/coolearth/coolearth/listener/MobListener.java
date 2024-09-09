@@ -1,6 +1,6 @@
 package me.coolearth.coolearth.listener;
 
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.timed.TargetManager;
 import org.bukkit.Location;
@@ -73,8 +73,8 @@ public class MobListener implements Listener {
         if (event.getEntityType().equals(EntityType.IRON_GOLEM) || event.getEntityType().equals(EntityType.SILVERFISH)){
             LivingEntity target = event.getTarget();
             if (target == null) return;
-            Team team = Util.getTeamEntity(target);
-            if (team.equals(Util.getTeamEntity(event.getEntity())) || team.equals(Team.NONE)) {
+            TeamUtil team = Util.getTeamEntity(target);
+            if (team.equals(Util.getTeamEntity(event.getEntity())) || team.equals(TeamUtil.NONE)) {
                 event.setCancelled(true);
             }
         }

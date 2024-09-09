@@ -1,12 +1,13 @@
 package me.coolearth.coolearth.listener;
 
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
+import me.coolearth.coolearth.scoreboard.Board;
 import me.coolearth.coolearth.timed.SpongeManager;
 import org.bukkit.*;
 
@@ -24,11 +25,13 @@ public class BlockListener implements Listener {
     private final BlockManager m_blockManager;
     private final PlayerInfo m_playerInfo;
     private final SpongeManager m_spongeManager;
+    private final Board m_board;
 
-    public BlockListener(PlayerInfo playerInfo, BlockManager blockManager, SpongeManager spongeManager) {
+    public BlockListener(PlayerInfo playerInfo, BlockManager blockManager, SpongeManager spongeManager, Board board) {
         m_playerInfo = playerInfo;
         m_blockManager = blockManager;
         m_spongeManager = spongeManager;
+        m_board = board;
     }
 
     @EventHandler
@@ -38,7 +41,7 @@ public class BlockListener implements Listener {
         Block clickedBlock = event.getClickedBlock();
         if (clickedBlock == null) return;
         if (clickedBlock.getType().equals(Material.CHEST)) {
-            Team team = Constants.getChestTeam(clickedBlock.getLocation());
+            TeamUtil team = Constants.getChestTeam(clickedBlock.getLocation());
             TeamInfo teamInfo = m_playerInfo.getTeamInfo(team);
             if (team != Util.getTeam(player) && (teamInfo.isAnyoneOnTeamAlive() || teamInfo.hasBed())) {
                 event.setCancelled(true);
@@ -127,51 +130,58 @@ public class BlockListener implements Listener {
         if (isBed(type)) {
             event.setDropItems(false);
             if (type == Material.RED_BED ) {
-                if (player.getScoreboardTags().contains("red")) {
+                if (player.getScoreboardTags().contains(TeamUtil.RED.getName())) {
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(Team.RED);
+                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(TeamUtil.RED);
                     if (teamInfo == null) {
                         event.setCancelled(true);
                         return;
                     }
                     teamInfo.bedBreak();
+                    m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
                 }
             }
             else if (type == Material.BLUE_BED ) {
-                if (player.getScoreboardTags().contains("blue")) {
+                TeamUtil blue = TeamUtil.BLUE;
+                if (player.getScoreboardTags().contains(blue.getName())) {
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(Team.BLUE);
+                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(blue);
                     if (teamInfo == null) {
                         event.setCancelled(true);
                         return;
                     }
                     teamInfo.bedBreak();
+                    m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
                 }
             }
             else if (type == Material.YELLOW_BED ) {
-                if (player.getScoreboardTags().contains("yellow")) {
+                TeamUtil yellow = TeamUtil.YELLOW;
+                if (player.getScoreboardTags().contains(yellow.getName())) {
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(Team.YELLOW);
+                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(yellow);
                     if (teamInfo == null) {
                         event.setCancelled(true);
                         return;
                     }
                     teamInfo.bedBreak();
+                    m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
                 }
             }
             else if (type == Material.LIME_BED ) {
-                if (player.getScoreboardTags().contains("green")) {
+                TeamUtil green = TeamUtil.GREEN;
+                if (player.getScoreboardTags().contains(green.getName())) {
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(Team.GREEN);
+                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(green);
                     if (teamInfo == null) {
                         event.setCancelled(true);
                         return;
                     }
                     teamInfo.bedBreak();
+                    m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
                 }
             }
         } else if (m_blockManager.contains(event.getBlock())){

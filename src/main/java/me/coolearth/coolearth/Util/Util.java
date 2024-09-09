@@ -37,7 +37,7 @@ public class Util {
             }
     }
 
-    public static Material getWool(Team team) {
+    public static Material getWool(TeamUtil team) {
         switch (team) {
             case RED:
                 return Material.RED_WOOL;
@@ -90,16 +90,16 @@ public class Util {
             Util.removeTeams(player);
             switch (i) {
                 case 0:
-                    player.addScoreboardTag("red");
+                    player.addScoreboardTag(TeamUtil.RED.getName());
                     break;
                 case 1:
-                    player.addScoreboardTag("yellow");
+                    player.addScoreboardTag(TeamUtil.YELLOW.getName());
                     break;
                 case 2:
-                    player.addScoreboardTag("green");
+                    player.addScoreboardTag(TeamUtil.GREEN.getName());
                     break;
                 case 3:
-                    player.addScoreboardTag("blue");
+                    player.addScoreboardTag(TeamUtil.BLUE.getName());
                     break;
                 default: throw new UnsupportedOperationException("Teams not registered correctly");
             }
@@ -112,8 +112,8 @@ public class Util {
     }
 
     public static void removeTeams(Player player) {
-        for (Team team : Team.values()) {
-            if (team == Team.NONE) continue;
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team == TeamUtil.NONE) continue;
             if (player.getScoreboardTags().contains(team.getName())) {
                 player.removeScoreboardTag(team.getName());
             }
@@ -144,14 +144,14 @@ public class Util {
      *
      * @return The team a player has
      */
-    public static Team getTeam(Player player) {
-        for (Team team : Team.values()) {
-            if (team == Team.NONE) continue;
+    public static TeamUtil getTeam(Player player) {
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team == TeamUtil.NONE) continue;
             if (player.getScoreboardTags().contains(team.getName())) {
                 return team;
             }
         }
-        return Team.NONE;
+        return TeamUtil.NONE;
     }
 
     /**
@@ -174,9 +174,9 @@ public class Util {
 
     /**
      * @param yaw DEGREES
-     * @return direction in radians
+     * @return direction in BlockFace inverted from minecraft
      */
-    public static BlockFace getDirectionLadder(double yaw) {
+    public static BlockFace getDirectionInverted(double yaw) {
         if((yaw >= -45) && (yaw < 45)) {
             return BlockFace.NORTH;
         } else if((yaw >= -135) && (yaw < -45)) {
@@ -189,6 +189,25 @@ public class Util {
             throw new UnsupportedOperationException("No direction found given that yaw");
         }
     }
+
+    /**
+     * @param yaw DEGREES
+     * @return direction in BlockFace in minecraft
+     */
+    public static BlockFace getDirectionMinecraft(double yaw) {
+        if((yaw >= -45) && (yaw < 45)) {
+            return BlockFace.SOUTH;
+        } else if((yaw >= -135) && (yaw < -45)) {
+            return BlockFace.EAST;
+        } else if (yaw >= 45 && yaw < 135) {
+            return BlockFace.WEST;
+        } else if (((yaw >= 135) || (yaw < -135)) && (yaw <= 180 && yaw >= -180)) {
+            return BlockFace.NORTH;
+        } else {
+            throw new UnsupportedOperationException("No direction found given that yaw");
+        }
+    }
+
     public static void protectedExplotion(List<Block> blockList, Location explosionCenter, BlockManager blockManager) {
         Set<Block> protectedBlocks = new HashSet<>();
         boolean isCheck = checkBreakable(blockList);
@@ -242,7 +261,7 @@ public class Util {
         return false;
     }
 
-    public static boolean buildPopUpBase(Team team, Location location, double yaw, BlockManager blockManager) {
+    public static boolean buildPopUpBase(TeamUtil team, Location location, double yaw, BlockManager blockManager) {
         World world = location.getWorld();
         int blockZ = location.getBlockZ();
         int blockY = location.getBlockY();
@@ -253,7 +272,7 @@ public class Util {
         Location secondlocation = MathUtil.getRelativeLocation(world, blockX - 3, blockY, blockZ - 3, blockX, blockZ,direction);
         if (!checkClear(firstlocation, secondlocation)) return false;
         Directional ladder = (Directional) Material.LADDER.createBlockData();
-        ladder.setFacing(getDirectionLadder(yaw));
+        ladder.setFacing(getDirectionInverted(yaw));
 
         //Walls
         fill(MathUtil.getRelativeLocation(world, blockX-1, blockY, blockZ+1,blockX, blockZ, direction), MathUtil.getRelativeLocation(world, blockX+1, blockY+3, blockZ+1,blockX, blockZ, direction), getWool(team).createBlockData(),blockManager);
@@ -379,14 +398,14 @@ public class Util {
         return true;
     }
 
-    public static Team getTeamEntity(Entity entity) {
-        for (Team team : Team.values()) {
-            if (team == Team.NONE) continue;
+    public static TeamUtil getTeamEntity(Entity entity) {
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team == TeamUtil.NONE) continue;
             if (entity.getScoreboardTags().contains(team.getName())) {
                 return team;
             }
         }
-        return Team.NONE;
+        return TeamUtil.NONE;
     }
 
     public static Location convertToBlockLocation(Location location) {
@@ -401,7 +420,7 @@ public class Util {
         }
     }
 
-    public static boolean atBase(Location location, Team team) {
+    public static boolean atBase(Location location, TeamUtil team) {
         World world = Bukkit.getWorld("world");
         switch (team) {
             case RED:
@@ -419,7 +438,8 @@ public class Util {
     }
 
     public static void setupPlayerFromStart(Player player) {
-        player.teleport(getSpawnerLocation(getTeam(player)));
+        TeamUtil team = getTeam(player);
+        player.teleport(Constants.getTeamGeneratorLocation(team));
         PlayerInventory inventory = player.getInventory();
         player.setGameMode(GameMode.SURVIVAL);
         clearEffects(player);
@@ -427,7 +447,6 @@ public class Util {
         inventory.clear();
         player.getEnderChest().clear();
         inventory.addItem(createWithUnbreakable(Material.WOODEN_SWORD));
-        Team team = getTeam(player);
         inventory.setHelmet(setColor(createWithUnbreakable(Material.LEATHER_HELMET), team.getColor()));
         inventory.setChestplate(setColor(createWithUnbreakable(Material.LEATHER_CHESTPLATE), team.getColor()));
         inventory.setLeggings(setColor(createWithUnbreakable(Material.LEATHER_LEGGINGS), team.getColor()));
@@ -439,24 +458,6 @@ public class Util {
         itemMeta.setColor(color);
         itemStack.setItemMeta(itemMeta);
         return itemStack;
-    }
-
-    public static Location getSpawnerLocation(Team team) {
-        World world = Bukkit.getWorld("world");
-        switch (team) {
-            case RED:
-                return new Location(world, 43.5, 6.5, 31.5, 90, 0);
-            case YELLOW:
-                return new Location(world, -27.5, 6.5, 101.5, 180,0);
-            case GREEN:
-                return new Location(world,-97.5 ,6.5 ,31.5, 270,0);
-            case BLUE:
-                return new Location(world, -27.5 ,6.5 ,-39.5,0,0);
-            case NONE:
-                throw new UnsupportedOperationException("Team cannot be none");
-            default:
-                throw new UnsupportedOperationException("Team does not exist");
-        }
     }
 
     private static ItemMeta createUnbreakableItemMeta(ItemStack itemStack) {
@@ -481,7 +482,7 @@ public class Util {
         return item;
     }
 
-    public static Team getMostEmptyTeam(PlayerInfo playerInfo) {
+    public static TeamUtil getMostEmptyTeam(PlayerInfo playerInfo) {
         int best = 999999;
         for (TeamInfo team : playerInfo.getTeams().values()) {
             int numberOfPeopleOnTeam = team.numberOfPeopleOnTeam();
@@ -489,13 +490,32 @@ public class Util {
                 best = numberOfPeopleOnTeam;
             }
         }
-        for (Team team : Team.values()) {
-            if (team.equals(Team.NONE)) continue;
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team.equals(TeamUtil.NONE)) continue;
             if (playerInfo.getTeamInfo(team).numberOfPeopleOnTeam() == best) {
                 return team;
             }
         }
         throw new UnsupportedOperationException("No team found");
+    }
+
+    public static TeamUtil getMostEmptyAliveTeam(PlayerInfo playerInfo) {
+        int best = 999999;
+        for (TeamInfo team : playerInfo.getTeams().values()) {
+            if (!team.hasBed()) continue;
+            int numberOfPeopleOnTeam = team.numberOfPeopleOnTeam();
+            if (numberOfPeopleOnTeam < best) {
+                best = numberOfPeopleOnTeam;
+            }
+        }
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team.equals(TeamUtil.NONE)) continue;
+            if (!playerInfo.getTeamInfo(team).hasBed()) continue;
+            if (playerInfo.getTeamInfo(team).numberOfPeopleOnTeam() == best) {
+                return team;
+            }
+        }
+        return null;
     }
 
     private static ItemStack addNameAndLore(ItemStack item, String displayName, String realName, String firstLore, String secondLore, String... lores) {
@@ -654,10 +674,6 @@ public class Util {
      */
     public static ItemStack addEnchantment(Enchantment enchantment, ItemStack item) {
         return addEnchantment(enchantment,1,item);
-    }
-
-    public static Location getSpawn(World world) {
-        return new Location(world,-27.5,41, 31.5);
     }
 
     /*

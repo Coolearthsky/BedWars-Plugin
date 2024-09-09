@@ -9,11 +9,9 @@ import org.bukkit.entity.Player;
 
 public class StartRunnables implements CommandExecutor {
 
-    private final PlayerInfo m_playerInfo;
     private final Generators m_generators;
 
     public StartRunnables(PlayerInfo playerInfo, Generators generators) {
-        m_playerInfo = playerInfo;
         m_generators = generators;
     }
 

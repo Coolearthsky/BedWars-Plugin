@@ -2,6 +2,7 @@ package me.coolearth.coolearth.timed;
 
 import com.comphenix.protocol.wrappers.Pair;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.Constants;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -86,30 +87,23 @@ public class Generators {
     }
 
     private void setItem(Material material) {
-        switch(material) {
-            case EMERALD:
-                spawnItemSmart(-27.5, 24, 31.5, material);
-                spawnItemSmart(-27.5, 7, 31.5, material);
-                break;
-            case DIAMOND:
-                spawnItemSmart(-1.5, 6,5.5, material);
-                spawnItemSmart(-53.5, 6,57.5, material);
-                spawnItemSmart(-53.5, 6,5.5, material);
-                spawnItemSmart(-1.5, 6,57.5, material);
-                break;
-            default:
-                throw new UnsupportedOperationException("Not valid material");
+        for (Location location: Constants.getGenLocations(material)) {
+            spawnItemSmart(location, material);
         }
     }
 
     private void spawnItemSmart(double x, double y, double z, Material material){
-        int amount = 0;
         World world = Bukkit.getWorld("world");
-        Location firstlocation = new Location(world, x, y, z);
-        for (Item entity: world.getEntitiesByClass(Item.class)) {
+        Location location = new Location(world, x, y, z);
+        spawnItemSmart(location, material);
+    }
+
+    private void spawnItemSmart(Location location, Material material){
+        int amount = 0;
+        for (Item entity: location.getWorld().getEntitiesByClass(Item.class)) {
             ItemStack itemStack = entity.getItemStack();
             if (material != itemStack.getType()) continue;
-            if (!Util.locationsEqualIgnoringRot(firstlocation, entity.getLocation())) {
+            if (!Util.locationsEqualIgnoringRot(location, entity.getLocation())) {
                 continue;
             }
             amount++;
@@ -124,6 +118,6 @@ public class Generators {
             default:
                 throw new UnsupportedOperationException("Not a real item");
         }
-        Util.spawnItem(firstlocation, material);
+        Util.spawnItem(location, material);
     }
 }

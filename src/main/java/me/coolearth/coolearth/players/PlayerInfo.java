@@ -1,6 +1,6 @@
 package me.coolearth.coolearth.players;
 
-import me.coolearth.coolearth.Util.Team;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -13,14 +13,14 @@ import java.util.UUID;
 
 public class PlayerInfo {
     private final Map<UUID, PlayerAddons> m_players = new HashMap<>();
-    private final Map<Team, TeamInfo> m_teams = new HashMap<>();
+    private final Map<TeamUtil, TeamInfo> m_teams = new HashMap<>();
     private final JavaPlugin m_coolearth;
 
     public PlayerInfo(JavaPlugin coolearth) {
         m_coolearth = coolearth;
     }
 
-    public TeamInfo getTeamInfo(Team team) {
+    public TeamInfo getTeamInfo(TeamUtil team) {
         return m_teams.get(team);
     }
 
@@ -39,21 +39,21 @@ public class PlayerInfo {
     }
 
     public void startPlayers() {
-        Map<Team, ArrayList<PlayerAddons>> plat = new HashMap<>();
-        for (Team team : Team.values()) {
-            if (team == Team.NONE) continue;
+        Map<TeamUtil, ArrayList<PlayerAddons>> plat = new HashMap<>();
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team == TeamUtil.NONE) continue;
             plat.put(team, new ArrayList<>());
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
             UUID playerUUID = player.getUniqueId();
-            Team team = Util.getTeam(player);
+            TeamUtil team = Util.getTeam(player);
             PlayerAddons value = new PlayerAddons(m_coolearth, team, playerUUID);
             m_players.put(playerUUID, value);
-            if (team == Team.NONE) continue;
+            if (team == TeamUtil.NONE) continue;
             plat.get(team).add(value);
         }
-        for (Team team : Team.values()) {
-            if (team == Team.NONE) continue;
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team == TeamUtil.NONE) continue;
             Map<UUID, PlayerAddons> tempMap = new HashMap<>();
             for (PlayerAddons player : plat.get(team)) {
                 tempMap.put(player.getPlayer(), player);
@@ -64,22 +64,22 @@ public class PlayerInfo {
 
     public void resetPlayers() {
         stopLoops();
-        Map<Team, ArrayList<PlayerAddons>> plat = new HashMap<>();
-        for (Team team : Team.values()) {
-            if (team == Team.NONE) continue;
+        Map<TeamUtil, ArrayList<PlayerAddons>> plat = new HashMap<>();
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team == TeamUtil.NONE) continue;
             plat.put(team, new ArrayList<>());
         }
         for (UUID playerUUID : m_players.keySet()) {
             Player player = Bukkit.getPlayer(playerUUID);
             if (player == null) continue;
-            Team team = Util.getTeam(player);
+            TeamUtil team = Util.getTeam(player);
             PlayerAddons value = new PlayerAddons(m_coolearth, team, playerUUID);
             m_players.replace(playerUUID, value);
-            if (team == Team.NONE) continue;
+            if (team == TeamUtil.NONE) continue;
             plat.get(team).add(value);
         }
-        for (Team team : Team.values()) {
-            if (team == Team.NONE) continue;
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team == TeamUtil.NONE) continue;
             Map<UUID, PlayerAddons> tempMap = new HashMap<>();
             for (PlayerAddons player : plat.get(team)) {
                 tempMap.put(player.getPlayer(), player);
@@ -98,7 +98,7 @@ public class PlayerInfo {
         return m_players.get(player.getUniqueId());
     }
 
-    public Map<Team, TeamInfo> getTeams() {
+    public Map<TeamUtil, TeamInfo> getTeams() {
         return m_teams;
     }
 
@@ -106,7 +106,7 @@ public class PlayerInfo {
         return m_players;
     }
 
-    public void updateTeams(Player player, Team team) {
+    public void updateTeams(Player player, TeamUtil team) {
         UUID playerUUID = player.getUniqueId();
         PlayerAddons playerAddons = m_players.get(playerUUID);
         if (playerAddons == null) return;

@@ -1,6 +1,7 @@
 package me.coolearth.coolearth.listener;
 
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.players.PlayerAddons;
 import me.coolearth.coolearth.players.PlayerInfo;
 import org.bukkit.Bukkit;
@@ -40,6 +41,6 @@ public class DeathManager implements Listener {
 
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent event){
-        event.setRespawnLocation(Util.getSpawn(Bukkit.getWorld("world")));
+        event.setRespawnLocation(Constants.getSpawn());
     }
 }

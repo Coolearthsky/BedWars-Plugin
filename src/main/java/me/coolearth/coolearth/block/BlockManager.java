@@ -1,7 +1,11 @@
 package me.coolearth.coolearth.block;
 
+import com.comphenix.protocol.wrappers.Pair;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.math.MathUtil;
+import me.coolearth.coolearth.math.Rotation2d;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -16,21 +20,6 @@ import java.util.ArrayList;
 public class BlockManager {
 
     private final ArrayList<Location> playerPlacedBlockList =new ArrayList<>();
-    private final ArrayList<ArrayList<Location>> noPlaceZones = new ArrayList<>();
-
-    public BlockManager() {
-        setNoPlaceZone(new Location(Bukkit.getWorld("world"), -86, 7, 36), new Location(Bukkit.getWorld("world"),-99, 11, 26));
-        setNoPlaceZone(new Location(Bukkit.getWorld("world"), 31, 7, 36), new Location(Bukkit.getWorld("world"),44,11, 26));
-        setNoPlaceZone(new Location(Bukkit.getWorld("world"), -33,7, 89), new Location(Bukkit.getWorld("world"),-23, 11, 102));
-        setNoPlaceZone(new Location(Bukkit.getWorld("world"), -33, 11, -41), new Location(Bukkit.getWorld("world"),-23, 7, -28));
-    }
-
-    private void setNoPlaceZone(Location firstplace, Location secondplace) {
-        ArrayList<Location> noPlaceZone= new ArrayList<>();
-        noPlaceZone.add(firstplace);
-        noPlaceZone.add(secondplace);
-        noPlaceZones.add(noPlaceZone);
-    }
 
     public void add(Block block) {
         add(block.getLocation());
@@ -60,24 +49,35 @@ public class BlockManager {
     }
 
     public void resetMap() {
-        World world = Bukkit.getWorld("world");
         clearPlayerPlacedBlocks();
-        setBed(world,-28, 7, 83, BlockFace.NORTH, Bed.Part.HEAD,Material.YELLOW_BED);
-        setBed(world,-28, 7, 84, BlockFace.NORTH, Bed.Part.FOOT,Material.YELLOW_BED);
-        setBed(world,25 ,7, 31, BlockFace.WEST, Bed.Part.HEAD,Material.RED_BED);
-        setBed(world,26 ,7, 31, BlockFace.WEST, Bed.Part.FOOT,Material.RED_BED);
-        setBed(world,-28, 7, -22, BlockFace.SOUTH, Bed.Part.HEAD,Material.BLUE_BED);
-        setBed(world,-28, 7, -23, BlockFace.SOUTH, Bed.Part.FOOT,Material.BLUE_BED);
-        setBed(world,-80, 7 ,31, BlockFace.EAST, Bed.Part.HEAD,Material.LIME_BED);
-        setBed(world,-81, 7 ,31, BlockFace.EAST, Bed.Part.FOOT, Material.LIME_BED);
+        resetBeds();
     }
 
+    public void resetBeds() {
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team.equals(TeamUtil.NONE)) continue;
+            resetBed(team);
+        }
+    }
+
+    private void resetBed(TeamUtil team) {
+        Pair<Location,Location> locations = Constants.getBedLocation(team);
+        Location dif = locations.getFirst().clone().subtract(locations.getSecond());
+        Rotation2d rot = new Rotation2d(dif.getZ(),-1.0 * dif.getX());
+        BlockFace dir = Util.getDirectionMinecraft(rot.getDegrees());
+        setBed(locations.getFirst(), dir, Bed.Part.HEAD, team.getBed());
+        setBed(locations.getSecond(), dir, Bed.Part.FOOT, team.getBed());
+    }
 
     private void setBed(World world, double x, double y, double z, BlockFace face, Bed.Part part, Material material) {
+        setBed(new Location(world,x, y, z),face,part,material);
+    }
+
+    private void setBed(Location location, BlockFace face, Bed.Part part, Material material) {
         Bed bedBlockData = (Bed) material.createBlockData();
         bedBlockData.setPart(part);
         bedBlockData.setFacing(face);
-        world.setBlockData(new Location(world,x, y, z), bedBlockData);
+        location.getWorld().setBlockData(location, bedBlockData);
     }
 
     public boolean contains(Block block) {
@@ -107,8 +107,8 @@ public class BlockManager {
     }
 
     private boolean checkNoPlaceZones(Location location) {
-        for (ArrayList<Location> loc : noPlaceZones) {
-            if (MathUtil.isBetweenTwoLocations(location, loc.get(0), loc.get(1))) {
+        for (Pair<Location,Location> loc : Constants.getNoPlaceZones()) {
+            if (MathUtil.isBetweenTwoLocations(location, loc.getFirst(), loc.getSecond())) {
                 return false;
             }
         }
