@@ -421,20 +421,8 @@ public class Util {
     }
 
     public static boolean atBase(Location location, TeamUtil team) {
-        World world = Bukkit.getWorld("world");
-        switch (team) {
-            case RED:
-                return MathUtil.isBetweenTwoLocations(location, new Location(world,46 ,16, 22 ), new Location(world,21 ,-1 ,40 ));
-            case YELLOW:
-                return MathUtil.isBetweenTwoLocations(location, new Location(world,-37, -1, 79), new Location(world,-19 ,16, 104 ));
-            case GREEN:
-                return MathUtil.isBetweenTwoLocations(location, new Location(world,-76, -1, 22), new Location(world,-101, 16, 40));
-            case BLUE:
-                return MathUtil.isBetweenTwoLocations(location, new Location(world,-37, -1, -18), new Location(world,-19, 16 ,-43));
-            case NONE:
-            default:
-                throw new UnsupportedOperationException("Not an accepted team");
-        }
+        Pair<Location, Location> baseBounds = Constants.getBaseLocations(team);
+        return MathUtil.isBetweenTwoLocations(location, baseBounds.getFirst(), baseBounds.getSecond());
     }
 
     public static void setupPlayerFromStart(Player player) {

@@ -15,9 +15,9 @@ public class Constants {
     private static final Map<TeamUtil, Pair<Location,Location>> bedLocations = new HashMap<>();
     private static final Map<Material,Set<Location>> generators = new HashMap<>();
     private static final Set<Pair<Location,Location>> noPlaceZones = new HashSet<>();
+    private static final Map<TeamUtil, Pair<Location, Location>> baseLocations = new HashMap<>();
     private static final World world = Bukkit.getWorld("world");
     private static final Location spawn = new Location(world,-27.5,41, 31.5);
-
 
     static {
         //Diamond Gens
@@ -55,6 +55,12 @@ public class Constants {
         noPlaceZones.add(new Pair<>(new Location(world, 31, 7, 36), new Location(world,44,11, 26)));
         noPlaceZones.add(new Pair<>(new Location(world, -33,7, 89), new Location(world,-23, 11, 102)));
         noPlaceZones.add(new Pair<>(new Location(world, -33, 11, -41), new Location(world,-23, 7, -28)));
+
+        // Base locations
+        baseLocations.put(TeamUtil.RED, new Pair<>(new Location(world, 46, 16, 22), new Location(world, 21, -1, 40)));
+        baseLocations.put(TeamUtil.YELLOW, new Pair<>(new Location(world, -37, -1, 79), new Location(world, -19, 16, 104)));
+        baseLocations.put(TeamUtil.GREEN, new Pair<>(new Location(world, -76, -1, 22), new Location(world, -101, 16, 40)));
+        baseLocations.put(TeamUtil.BLUE, new Pair<>(new Location(world, -37, -1, -18), new Location(world, -19, 16, -43)));
     }
 
     public static Location getSpawn() {
@@ -71,6 +77,10 @@ public class Constants {
 
     public static Pair<Location,Location> getBedLocation(TeamUtil team) {
         return bedLocations.get(team);
+    }
+
+    public static Pair<Location,Location> getBaseLocations(TeamUtil team) {
+        return baseLocations.get(team);
     }
 
     public static TeamUtil getChestTeam(Location location) {
