@@ -1,5 +1,6 @@
 package me.coolearth.coolearth.listener;
 
+import com.comphenix.protocol.wrappers.Pair;
 import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.Constants;
@@ -255,17 +256,22 @@ public class InventoryManager implements Listener {
      * @return The generator the player is in, returns NONE if player is not in a generator
      */
     private TeamUtil inGenerator(Location playerLocation) {
-        World world = Bukkit.getWorld("world");
-        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,42, 6,32), new Location(world,44, 9, 30))) return TeamUtil.RED;
-        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world, -27, 6, 102), new Location(world, -29, 9, 100))) return TeamUtil.YELLOW;
-        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,-97, 6 ,30), new Location(world,-99 , 9,32))) return TeamUtil.GREEN;
-        if (MathUtil.isBetweenTwoLocations(playerLocation, new Location(world,-27, 6, -39), new Location(world,-29 ,9, -41))) return TeamUtil.BLUE;
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team.equals(TeamUtil.NONE)) continue;
+            Pair<Location, Location> loc = getAreaAroundSpawner(Constants.getTeamGeneratorLocation(team));
+            if (MathUtil.isBetweenTwoLocations(playerLocation, loc.getFirst(), loc.getSecond())) return team;
+        }
         return TeamUtil.NONE;
     }
 
     private boolean inGenerator(Location playerLocation, TeamUtil team) {
-        Location spawnerLoc = Constants.getTeamGeneratorLocation(team);
-        return MathUtil.isBetweenTwoLocations(playerLocation,spawnerLoc.add(-1.5,0,-1.5),spawnerLoc.add(1.5,3.5,1.5));
+        Pair<Location, Location> spawnerLoc = getAreaAroundSpawner(Constants.getTeamGeneratorLocation(team));
+        return MathUtil.isBetweenTwoLocations(playerLocation,spawnerLoc.getFirst(),spawnerLoc.getSecond());
+    }
+
+    private Pair<Location, Location> getAreaAroundSpawner(Location location) {
+        Location CloneLoc = location.clone();
+        return new Pair<>(CloneLoc.add(-1.5,0,-1.5),CloneLoc.add(1.5,2.5,1.5));
     }
 
     private boolean test(Player player, ItemStack droppedItem) {

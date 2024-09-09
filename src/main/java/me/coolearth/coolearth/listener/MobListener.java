@@ -42,6 +42,7 @@ public class MobListener implements Listener {
             }
         }
     }
+
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
         if (event.getEntityType().equals(EntityType.SNOWBALL)) {
