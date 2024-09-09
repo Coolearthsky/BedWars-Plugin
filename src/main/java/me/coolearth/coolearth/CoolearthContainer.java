@@ -65,7 +65,7 @@ public class CoolearthContainer {
         //Listeners
         blockListener = new BlockListener(playerInfo, blockManager, spongeManager, board);
         inventoryListener = new InventoryManager();
-        deathListener = new DeathManager(playerInfo);
+        deathListener = new DeathManager(playerInfo, board);
         playerListener = new PlayerListener(playerInfo, board, coolearth);
         shopListener = new ShopListener(playerInfo);
         foodListener = new FoodListener(playerInfo);
@@ -94,9 +94,6 @@ public class CoolearthContainer {
         //Team based commands
         Upgrade upgrade = new Upgrade(playerInfo);
         Teams teams = new Teams(playerInfo, board);
-
-        //Scoreboard
-
 
         //Registering commands
         coolearth.getCommand("reset").setExecutor(reset);

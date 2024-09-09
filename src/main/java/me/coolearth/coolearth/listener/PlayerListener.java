@@ -34,6 +34,9 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player1 = event.getPlayer();
+        if (player1.getLastPlayed() == 0) {
+            player1.addScoreboardTag("player");
+        }
         UUID player = player1.getUniqueId();
         Bukkit.getLogger().info(player1.getAddress().getAddress().getAddress().toString());
         Bukkit.getLogger().info(player1.getAddress().toString());
