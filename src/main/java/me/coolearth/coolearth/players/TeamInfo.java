@@ -8,6 +8,7 @@ import me.coolearth.coolearth.menus.menuItems.Traps;
 import me.coolearth.coolearth.menus.menuItems.Upgrades;
 import me.coolearth.coolearth.scoreboard.Board;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
@@ -65,6 +66,14 @@ public class TeamInfo {
         return m_playersOnTeam.size();
     }
 
+    public int numberOfAlivePeopleOnTeam() {
+        int i = 0;
+        for (PlayerAddons playerAddons : m_playersOnTeam.values()) {
+            if (playerAddons.isAlive()) i++;
+        }
+        return i;
+    }
+
     public boolean isAnyoneOnTeamAlive() {
         for (PlayerAddons playerAddons : m_playersOnTeam.values()) {
             if (playerAddons.isAlive()) {
@@ -85,6 +94,7 @@ public class TeamInfo {
                 if (m_traps.isEmpty()) return;
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     UUID playerUUID = player.getUniqueId();
+                    if (player.getGameMode() == GameMode.SPECTATOR) continue;
                     if (Util.getTeam(player) == m_team) continue;
                     if (!Util.atBase(player.getLocation(), m_team)) {
                         playersInBase.remove(playerUUID);

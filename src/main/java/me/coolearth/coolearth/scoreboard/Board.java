@@ -81,7 +81,7 @@ public class Board {
         if (teamInfo.hasBed()) {
             return Optional.empty();
         } else {
-            return Optional.of(teamInfo.numberOfPeopleOnTeam());
+            return Optional.of(teamInfo.numberOfAlivePeopleOnTeam());
         }
     }
 
@@ -127,10 +127,10 @@ public class Board {
 
     private String getChar(Optional<Integer> bed) {
         if (!bed.isPresent()) {
-            return ChatColor.GREEN + "y";
+            return ChatColor.GREEN + "✔";
         } else {
             Integer string = bed.get();
-            if (string == 0) return "n";
+            if (string == 0) return "§c✘";
             return ChatColor.GREEN + string.toString();
         }
     }
