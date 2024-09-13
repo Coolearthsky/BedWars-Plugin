@@ -362,7 +362,7 @@ public class TeamInfo {
                 for (PlayerAddons playerAddons : m_playersOnTeam.values()) {
                     Player player = Bukkit.getPlayer(playerAddons.getPlayer());
                     if (player != null) {
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 2, value-1));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 2, value-1,true, false));
                     }
                 }
             }

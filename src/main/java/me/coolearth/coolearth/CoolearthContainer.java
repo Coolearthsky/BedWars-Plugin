@@ -45,7 +45,7 @@ public class CoolearthContainer {
     public CoolearthContainer(JavaPlugin coolearth) {
 
         if (Bukkit.getPluginManager().getPlugin("ProtocolLib") != null) {
-            ArmorPackets.register();
+            ArmorPackets.register(coolearth);
         }
         //Block manager, manages certain areas and where players can place blocks
         blockManager = new BlockManager();
