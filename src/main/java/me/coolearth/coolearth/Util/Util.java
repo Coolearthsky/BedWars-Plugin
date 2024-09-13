@@ -242,7 +242,7 @@ public class Util {
         Vector direction = end.toVector().subtract(start.toVector());
         double distance = direction.length();
         direction.normalize();
-        for (double d = 0; d < distance; d += 0.25) {
+        for (double d = 0; d < distance; d += 0.2) {
             Location checkLoc = start.clone().add(direction.clone().multiply(d));
             Block checkBlock = checkLoc.getBlock();
             if (unbreakableMaterials.contains(checkBlock.getType())) {

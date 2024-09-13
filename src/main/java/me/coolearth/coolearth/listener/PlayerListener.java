@@ -1,5 +1,6 @@
 package me.coolearth.coolearth.listener;
 
+import me.coolearth.coolearth.PacketManager.ArmorPackets;
 import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.Constants;
@@ -16,6 +17,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.UUID;
 
@@ -68,7 +70,8 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-
-//        Board.updateScoreboards();
+        Player player = event.getPlayer();
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        ArmorPackets.stopLoop(player);
     }
 }
