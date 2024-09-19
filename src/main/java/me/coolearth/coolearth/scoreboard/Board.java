@@ -11,6 +11,7 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class Board {
@@ -26,7 +27,7 @@ public class Board {
         Objective objective = scoreboard.registerNewObjective("Bedwars", "dummy");
 
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        objective.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Bedwars");
+        objective.setDisplayName(ChatColor.YELLOW + "" + ChatColor.BOLD + "BED WARS");
         objective.getScore(" ").setScore(4);
 
         int i = 0;
@@ -44,6 +45,12 @@ public class Board {
         }
     }
 
+    public void endScoreboards() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.setScoreboard(Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard());
+        }
+    }
+
     public void updateSpecificTeamsScoreboards(TeamUtil... team) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             updatePlayersScoreboard(player, team);
@@ -55,7 +62,7 @@ public class Board {
         Objective objective = scoreboard.registerNewObjective("Bedwars", "dummy");
 
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        objective.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Bedwars");
+        objective.setDisplayName(ChatColor.YELLOW + "" + ChatColor.BOLD + "BED WARS");
         objective.getScore(" ").setScore(4);
 
         int i = 0;

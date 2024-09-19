@@ -3,18 +3,16 @@ package me.coolearth.coolearth;
 import me.coolearth.coolearth.PacketManager.ArmorPackets;
 import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.commands.*;
+import me.coolearth.coolearth.damage.DeathManager;
 import me.coolearth.coolearth.listener.*;
 import me.coolearth.coolearth.players.PlayerInfo;
+import me.coolearth.coolearth.players.PlayerJoinLeaveManager;
 import me.coolearth.coolearth.scoreboard.Board;
 import me.coolearth.coolearth.startstop.StartGame;
 import me.coolearth.coolearth.startstop.StopGame;
-import me.coolearth.coolearth.timed.EggManager;
-import me.coolearth.coolearth.timed.Generators;
-import me.coolearth.coolearth.timed.SpongeManager;
-import me.coolearth.coolearth.timed.TargetManager;
+import me.coolearth.coolearth.timed.*;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 public class CoolearthContainer {
 
@@ -23,11 +21,13 @@ public class CoolearthContainer {
     private final Generators generators;
     private final TargetManager targetManager;
     private final EggManager eggManager;
+    private final VoidCheck voidCheck;
+    private final ArmorStands armorStands;
 
     //Listeners
     private final BlockListener blockListener;
     private final ShopListener shopListener;
-    private final DeathManager deathListener;
+    private final DeathListener deathListener;
     private final InventoryManager inventoryListener;
     private final PlayerListener playerListener;
     private final ProjectileListener projectileListener;
@@ -37,10 +37,13 @@ public class CoolearthContainer {
     //Scoreboard
     private final Board board;
 
+    //Managers
     private final PlayerInfo playerInfo;
     private final BlockManager blockManager;
+    private final DeathManager deathManager;
     private final StopGame stopGame;
     private final StartGame startGame;
+    private final PlayerJoinLeaveManager playerManager;
 
     public CoolearthContainer(JavaPlugin coolearth) {
 
@@ -55,6 +58,8 @@ public class CoolearthContainer {
         eggManager = new EggManager(coolearth);
         spongeManager = new SpongeManager(coolearth);
         targetManager = new TargetManager(coolearth);
+        voidCheck = new VoidCheck(coolearth);
+        armorStands = new ArmorStands(coolearth);
 
         //Player info
         playerInfo = new PlayerInfo(coolearth);
@@ -62,11 +67,20 @@ public class CoolearthContainer {
         //Scoreboard
         board = new Board(playerInfo);
 
+
+        //Start and stopgame controllers
+        startGame = new StartGame(generators, playerInfo, board, voidCheck);
+        stopGame = new StopGame(playerInfo, board, blockManager, generators, eggManager, targetManager, voidCheck);
+
+        //Death manager
+        deathManager = new DeathManager(playerInfo, board, stopGame);
+        playerManager = new PlayerJoinLeaveManager(playerInfo, board, coolearth);
+
         //Listeners
         blockListener = new BlockListener(playerInfo, blockManager, spongeManager, board);
         inventoryListener = new InventoryManager();
-        deathListener = new DeathManager(playerInfo, board);
-        playerListener = new PlayerListener(playerInfo, board, coolearth);
+        deathListener = new DeathListener(deathManager);
+        playerListener = new PlayerListener(playerManager);
         shopListener = new ShopListener(playerInfo);
         foodListener = new FoodListener(playerInfo);
         projectileListener = new ProjectileListener(eggManager, blockManager);
@@ -82,10 +96,6 @@ public class CoolearthContainer {
         Bukkit.getPluginManager().registerEvents(foodListener,coolearth);
         Bukkit.getPluginManager().registerEvents(projectileListener,coolearth);
 
-        //Start and stopgame controllers
-        startGame = new StartGame(generators, playerInfo, board);
-        stopGame = new StopGame(playerInfo, blockManager, generators, eggManager, targetManager);
-
         //Creating start/stop commands
         Reset reset = new Reset(startGame, stopGame);
         Start start = new Start(startGame);
@@ -94,6 +104,8 @@ public class CoolearthContainer {
         //Team based commands
         Upgrade upgrade = new Upgrade(playerInfo);
         Teams teams = new Teams(playerInfo, board);
+
+
 
         //Registering commands
         coolearth.getCommand("reset").setExecutor(reset);

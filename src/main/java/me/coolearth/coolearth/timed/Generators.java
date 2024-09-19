@@ -6,7 +6,6 @@ import me.coolearth.coolearth.global.Constants;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -24,7 +23,6 @@ public class Generators {
     }
 
     public void start() {
-        Bukkit.getLogger().info("STARTING");
         List<Pair<Optional<Integer>, Integer>> diamondLoops = new ArrayList<>();
         diamondLoops.add(new Pair<>(Optional.of(16), 50));
         diamondLoops.add(new Pair<>(Optional.of(16), 40));
@@ -61,7 +59,9 @@ public class Generators {
                     loopsAndSeconds.remove(0);
                     setLoops(loopsAndSeconds, material);
                 }
-                setItem(material);
+                if (!Bukkit.getOnlinePlayers().isEmpty()) {
+                    setItem(material);
+                }
             }
         });
         m_spawners.get(material).runTaskTimer(m_coolearth, seconds*20L, seconds*20L);
@@ -90,12 +90,6 @@ public class Generators {
         for (Location location: Constants.getGenLocations(material)) {
             spawnItemSmart(location, material);
         }
-    }
-
-    private void spawnItemSmart(double x, double y, double z, Material material){
-        World world = Bukkit.getWorld("world");
-        Location location = new Location(world, x, y, z);
-        spawnItemSmart(location, material);
     }
 
     private void spawnItemSmart(Location location, Material material){

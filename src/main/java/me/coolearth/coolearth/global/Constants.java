@@ -55,6 +55,11 @@ public class Constants {
         noPlaceZones.add(new Pair<>(new Location(world, 31, 7, 36), new Location(world,44,11, 26)));
         noPlaceZones.add(new Pair<>(new Location(world, -33,7, 89), new Location(world,-23, 11, 102)));
         noPlaceZones.add(new Pair<>(new Location(world, -33, 11, -41), new Location(world,-23, 7, -28)));
+        for (Set<Location> locations : generators.values()) {
+            for (Location location : locations) {
+                noPlaceZones.add(new Pair<>(location.clone().add(2.5,1,2.5), location.clone().add(-3.5,4,-3.5)));
+            }
+        }
 
         // Base locations
         baseLocations.put(TeamUtil.RED, new Pair<>(new Location(world, 46, 16, 22), new Location(world, 21, -1, 40)));
@@ -89,6 +94,10 @@ public class Constants {
 
     public static Set<Location> getGenLocations(Material material) {
         return generators.get(material);
+    }
+
+    public static Set<Material> getGenMaterials() {
+        return generators.keySet();
     }
 
     public static Map<Location, TeamUtil> getChests() {

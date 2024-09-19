@@ -3,7 +3,6 @@ package me.coolearth.coolearth.listener;
 import me.coolearth.coolearth.PacketManager.ArmorPackets;
 import me.coolearth.coolearth.players.PlayerAddons;
 import me.coolearth.coolearth.players.PlayerInfo;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -39,9 +38,7 @@ public class FoodListener implements Listener {
         if (type == Material.POTION) {
             inventory.setItem(event.getHand(), new ItemStack(Material.AIR));
             PotionMeta potionMeta = (PotionMeta) item.getItemMeta();
-            Bukkit.getLogger().info("working2423233444." + potionMeta.getItemName() + " W"+  potionMeta.getDisplayName());
             if (potionMeta.getDisplayName().equals(ChatColor.GREEN + "Invisibility Potion")) {
-                Bukkit.getLogger().info("working2423233.");
                 ArmorPackets.setInvis(player);
             }
             player.addPotionEffects(potionMeta.getCustomEffects());
@@ -54,7 +51,7 @@ public class FoodListener implements Listener {
         }
         else if (type == Material.MILK_BUCKET) {
             inventory.setItem(event.getHand(), new ItemStack(Material.AIR));
-            PlayerAddons playerAddons = m_playerInfo.getPlayers().get(player);
+            PlayerAddons playerAddons = m_playerInfo.getPlayers().get(player.getUniqueId());
             if (playerAddons != null) {
                 playerAddons.drankMilk();
             }

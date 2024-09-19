@@ -90,7 +90,7 @@ public class PlayerInfo {
 
     public void startTeamGenerators() {
         for (TeamInfo team : m_teams.values()) {
-            team.setUpgradeLevel(0);
+            team.startSpawning();
         }
     }
 

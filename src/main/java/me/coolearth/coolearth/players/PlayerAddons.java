@@ -23,6 +23,7 @@ import java.util.UUID;
 public class PlayerAddons {
     private TeamUtil m_team;
     private boolean m_alive;
+    private boolean m_playerAlive;
     private boolean m_hasBed;
     public List<Inventory> m_shop = new ArrayList<>();
     private Optional<Material> m_pickaxeLevel = Optional.empty();
@@ -35,13 +36,13 @@ public class PlayerAddons {
     private Material m_armor;
     private final UUID m_player;
     private Optional<BukkitRunnable> m_ignoreTrap;
-    private Optional<BukkitRunnable> m_deathCheck;
     private Optional<BukkitRunnable> m_onRespawn;
 
     public PlayerAddons(JavaPlugin coolearth, TeamUtil team, UUID player) {
         m_team = team;
         m_coolearth = coolearth;
         m_player = player;
+        m_playerAlive = true;
         m_protectionLevel = 0;
         m_hasBed = true;
         m_alive = true;
@@ -58,27 +59,10 @@ public class PlayerAddons {
         m_currentShopMenu = Optional.empty();
         m_pickaxeLevel = Optional.empty();
         m_axeLevel = Optional.empty();
-        deathCheck();
     }
 
     public boolean isAlive() {
         return m_alive;
-    }
-
-    private void deathCheck() {
-        m_deathCheck= Optional.of(new BukkitRunnable() {
-            @Override
-            public void run() {
-                Player player = Bukkit.getPlayer(m_player);
-                if (player == null) return;
-                if (!player.getScoreboardTags().contains("player")) return;
-                if (player.getLocation().getY() < -40 && player.getGameMode() != GameMode.SPECTATOR) {
-                    player.teleport(Constants.getSpawn());
-                    onDeath();
-                }
-            }
-        });
-        m_deathCheck.get().runTaskTimer(m_coolearth, 0,0);
     }
 
     public void bedBreak() {
@@ -93,7 +77,6 @@ public class PlayerAddons {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
         m_ignoreTrap.ifPresent(BukkitRunnable::cancel);
-        m_deathCheck.ifPresent(BukkitRunnable::cancel);
         if (m_onRespawn.isPresent()) {
             m_onRespawn.get().cancel();
             player.setGameMode(GameMode.SURVIVAL);
@@ -412,6 +395,7 @@ public class PlayerAddons {
     }
 
     public void onRespawn() {
+        m_playerAlive = true;
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
         m_onRespawn.get().cancel();
@@ -441,15 +425,19 @@ public class PlayerAddons {
         menuFive(m_shop.get(4));
     }
 
+    public boolean getAlive() {
+        return m_playerAlive;
+    }
+
     public void onDeath() {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
+        m_playerAlive = false;
         player.getInventory().clear();
         Util.clearEffects(player);
         player.setGameMode(GameMode.SPECTATOR);
         m_onRespawn.ifPresent(BukkitRunnable::cancel);
         if (!m_hasBed) {
-            player.sendMessage("You are out of the game");
             m_alive = false;
             return;
         }
