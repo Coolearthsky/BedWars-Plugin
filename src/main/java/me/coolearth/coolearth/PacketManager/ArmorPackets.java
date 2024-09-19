@@ -62,7 +62,6 @@ public class ArmorPackets {
         setInvisArmor(packetContainer);
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (Util.getTeam(p).equals(Util.getTeam(player)) || !p.getScoreboardTags().contains("player")) {
-                Bukkit.getLogger().info("working");
                 continue;
             }
             m_manager.sendServerPacket(p, packetContainer);
@@ -83,14 +82,13 @@ public class ArmorPackets {
                 packetContainer.getSlotStackPairLists().write(0,value);
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     if (Util.getTeam(p).equals(Util.getTeam(player)) || !p.getScoreboardTags().contains("player")) {
-                        Bukkit.getLogger().info("working");
                         continue;
                     }
                     m_manager.sendServerPacket(p, packetContainer);
                 }
             }
         };
-        runnable.runTaskLater(m_coolearth, 20*30);
+        runnable.runTaskLater(m_coolearth, 20*30+1);
         m_runnable.put(player.getUniqueId(), runnable);
     }
 
@@ -103,10 +101,17 @@ public class ArmorPackets {
 
     private static void setInvisArmor(PacketContainer fakeEquipmentPacket) {
         List<Pair<EnumWrappers.ItemSlot, ItemStack>> value = fakeEquipmentPacket.getSlotStackPairLists().read(0);
-        value.set(2,new Pair<>(EnumWrappers.ItemSlot.FEET, new ItemStack(Material.AIR)));
-        value.set(3,new Pair<>(EnumWrappers.ItemSlot.LEGS, new ItemStack(Material.AIR)));
-        value.set(4,new Pair<>(EnumWrappers.ItemSlot.CHEST, new ItemStack(Material.AIR)));
-        value.set(5,new Pair<>(EnumWrappers.ItemSlot.HEAD, new ItemStack(Material.AIR)));
+        if (value.size() > 5) {
+            value.set(2,new Pair<>(EnumWrappers.ItemSlot.FEET, new ItemStack(Material.AIR)));
+            value.set(3,new Pair<>(EnumWrappers.ItemSlot.LEGS, new ItemStack(Material.AIR)));
+            value.set(4,new Pair<>(EnumWrappers.ItemSlot.CHEST, new ItemStack(Material.AIR)));
+            value.set(5,new Pair<>(EnumWrappers.ItemSlot.HEAD, new ItemStack(Material.AIR)));
+        } else {
+            value.add(new Pair<>(EnumWrappers.ItemSlot.FEET, new ItemStack(Material.AIR)));
+            value.add(new Pair<>(EnumWrappers.ItemSlot.LEGS, new ItemStack(Material.AIR)));
+            value.add(new Pair<>(EnumWrappers.ItemSlot.CHEST, new ItemStack(Material.AIR)));
+            value.add(new Pair<>(EnumWrappers.ItemSlot.HEAD, new ItemStack(Material.AIR)));
+        }
         fakeEquipmentPacket.getSlotStackPairLists().write(0, value);
     }
 

@@ -130,15 +130,16 @@ public class BlockListener implements Listener {
         if (isBed(type)) {
             event.setDropItems(false);
             if (type == Material.RED_BED ) {
-                if (player.getScoreboardTags().contains(TeamUtil.RED.getName())) {
+                TeamUtil red = TeamUtil.RED;
+                if (player.getScoreboardTags().contains(red.getName())) {
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(TeamUtil.RED);
+                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(red);
                     if (teamInfo == null) {
                         event.setCancelled(true);
                         return;
                     }
-                    teamInfo.bedBreak();
+                    teamInfo.bedBreak(player);
                     m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
                 }
             }
@@ -152,7 +153,7 @@ public class BlockListener implements Listener {
                         event.setCancelled(true);
                         return;
                     }
-                    teamInfo.bedBreak();
+                    teamInfo.bedBreak(player);
                     m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
                 }
             }
@@ -166,7 +167,7 @@ public class BlockListener implements Listener {
                         event.setCancelled(true);
                         return;
                     }
-                    teamInfo.bedBreak();
+                    teamInfo.bedBreak(player);
                     m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
                 }
             }
@@ -180,7 +181,7 @@ public class BlockListener implements Listener {
                         event.setCancelled(true);
                         return;
                     }
-                    teamInfo.bedBreak();
+                    teamInfo.bedBreak(player);
                     m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
                 }
             }

@@ -8,6 +8,7 @@ import me.coolearth.coolearth.menus.menuItems.Traps;
 import me.coolearth.coolearth.menus.menuItems.Upgrades;
 import me.coolearth.coolearth.scoreboard.Board;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Item;
@@ -184,13 +185,17 @@ public class TeamInfo {
     }
 
     public void stopAllLoops() {
+        stopSpawners();
+        m_trapCheck.cancel();
+        m_healPool.ifPresent(BukkitRunnable::cancel);
+        m_miningManiac.ifPresent(BukkitRunnable::cancel);
+    }
+
+    public void stopSpawners() {
         for (BukkitRunnable runnable : m_spawners.values()) {
             runnable.cancel();
         }
         m_spawners.clear();
-        m_trapCheck.cancel();
-        m_healPool.ifPresent(BukkitRunnable::cancel);
-        m_miningManiac.ifPresent(BukkitRunnable::cancel);
     }
 
     private void createUpgrades() {
@@ -334,13 +339,22 @@ public class TeamInfo {
         createUpgrades();
     }
 
-    public void bedBreak() {
+    public void bedBreak(Player bedBreaker) {
         m_hasBed = false;
+        for (PlayerAddons player : m_allPlayers.get().values()) {
+            if (player.getTeam().equals(m_team)) continue;
+            Player realPlayer = Bukkit.getPlayer(player.getPlayer());
+            if (realPlayer == null) continue;
+            realPlayer.sendMessage("\n" + ChatColor.BOLD + "BED DESTRUCTION > " + m_team.getChatColor() + m_team.getName() + " Bed " + ChatColor.GRAY + "was destroyed by " + Util.getTeam(bedBreaker).getChatColor() + bedBreaker.getName() + ChatColor.GRAY + "!");
+            realPlayer.sendMessage("");
+        }
         for (PlayerAddons player : m_playersOnTeam.values()) {
             player.bedBreak();
             Player player1 = Bukkit.getPlayer(player.getPlayer());
             if (!player1.isOnline()) continue;
-            player1.sendMessage("Your bed was broken");
+            player1.sendMessage("\n" + ChatColor.BOLD + "BED DESTRUCTION > " + ChatColor.GRAY + "Your bed was destroyed by " + Util.getTeam(bedBreaker).getChatColor() + bedBreaker.getName() + ChatColor.GRAY + "!");
+            player1.sendMessage("");
+            player1.sendTitle(ChatColor.RED + "BED DESTROYED!",ChatColor.GRAY + "You will no longer respawn!",(int) (20*0.5),20*2,(int) (20*0.5));
         }
     }
 
@@ -463,13 +477,12 @@ public class TeamInfo {
         return m_playersOnTeam;
     }
 
-    public void addToMap(PlayerAddons teamRelativeAddons) {
-        UUID playerUUID = teamRelativeAddons.getPlayer();
-        m_playersOnTeam.put(playerUUID, teamRelativeAddons);
-    }
-
     public void upgradeToNextLevel() {
         setUpgradeLevel(m_generatorLevel+1);
+    }
+
+    public void startSpawning() {
+        setUpgradeLevel(m_generatorLevel);
     }
 
     public void setUpgradeLevel(int level) {
@@ -531,7 +544,9 @@ public class TeamInfo {
                     default:
                         throw new UnsupportedOperationException("Not a working item");
                 }
-                setItem(pair);
+                if (!Bukkit.getOnlinePlayers().isEmpty()) {
+                    setItem(pair);
+                }
             }
         });
         m_spawners.get(pair).runTaskTimer(m_coolearth, (long) (seconds*20), (long) (seconds*20));

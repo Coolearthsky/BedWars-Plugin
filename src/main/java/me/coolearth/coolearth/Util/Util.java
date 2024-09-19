@@ -14,6 +14,7 @@ import org.bukkit.block.Chest;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -485,6 +486,33 @@ public class Util {
             }
         }
         throw new UnsupportedOperationException("No team found");
+    }
+
+    public static void spawnArmorStands() {
+        for (Material material : Constants.getGenMaterials()) {
+            for (Location location : Constants.getGenLocations(material)) {
+                ArmorStand armorStand = location.getWorld().spawn(location.clone().add(0, 2, 0), ArmorStand.class);
+                armorStand.setInvisible(true);
+                armorStand.addScoreboardTag("generator");
+                armorStand.setInvulnerable(true);
+                switch (material) {
+                    case DIAMOND:
+                        armorStand.getEquipment().setHelmet(new ItemStack(Material.DIAMOND_BLOCK));
+                        break;
+                    case EMERALD:
+                        armorStand.getEquipment().setHelmet(new ItemStack(Material.EMERALD_BLOCK));
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Non-Recognized Material");
+                }
+            }
+        }
+    }
+
+    public static void broadcastMessage(String message) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(message);
+        }
     }
 
     public static TeamUtil getMostEmptyAliveTeam(PlayerInfo playerInfo) {
