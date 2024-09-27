@@ -39,6 +39,6 @@ public class StopGame {
         Util.clearChests();
         Util.emptyPlayers();
         m_voidCheck.stopVoidCheck();
-        Util.killAllEntities(Item.class, IronGolem.class, Silverfish.class, Snowball.class, Egg.class, ArmorStand.class);
+        Util.killAllEntities(Item.class, IronGolem.class, Silverfish.class, Snowball.class, Egg.class, ArmorStand.class, Arrow.class, Villager.class);
     }
 }

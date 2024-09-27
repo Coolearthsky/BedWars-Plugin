@@ -1,34 +1,53 @@
 package me.coolearth.coolearth.global;
 
 import com.comphenix.protocol.wrappers.Pair;
+import me.coolearth.coolearth.Util.Materials;
 import me.coolearth.coolearth.Util.TeamUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 
 import java.util.*;
 
 public class Constants {
     private static final Map<Location, TeamUtil> chests = new HashMap<>();
     private static final Map<TeamUtil, Location> teamGenerator = new HashMap<>();
+    private static final Map<TeamUtil, Location> shopLocations = new HashMap<>();
+    private static final Map<TeamUtil, Location> upgradesLocations = new HashMap<>();
     private static final Map<TeamUtil, Pair<Location,Location>> bedLocations = new HashMap<>();
-    private static final Map<Material,Set<Location>> generators = new HashMap<>();
+    private static final Map<Materials,Set<Location>> generators = new HashMap<>();
     private static final Set<Pair<Location,Location>> noPlaceZones = new HashSet<>();
     private static final Map<TeamUtil, Pair<Location, Location>> baseLocations = new HashMap<>();
     private static final World world = Bukkit.getWorld("world");
+    private static final Pair<Location,Location> placeZone = new Pair<>(new Location(world, 46, -8, -43),new Location(world, -101,40, 104));
     private static final Location spawn = new Location(world,-27.5,41, 31.5);
 
     static {
+        //Shops
+        shopLocations.put(TeamUtil.RED,new Location(world, 37, 7 , 37,180,0));
+        shopLocations.put(TeamUtil.YELLOW,new Location(world, -34, 7, 95,-90,0));
+        shopLocations.put(TeamUtil.GREEN,new Location(world, -92,7, 25,0,0));
+        shopLocations.put(TeamUtil.BLUE,new Location(world, -22, 7, -34,90,0));
+        for (Location location : shopLocations.values()) {
+            location.add(0.5, 0, 0.5);
+        }
+
+        //Upgrades
+        upgradesLocations.put(TeamUtil.RED,new Location(world, 37, 7 , 25,0,0));
+        upgradesLocations.put(TeamUtil.YELLOW,new Location(world, -22, 7, 95,90,0));
+        upgradesLocations.put(TeamUtil.GREEN,new Location(world, -92,7, 37,180,0));
+        upgradesLocations.put(TeamUtil.BLUE,new Location(world, -34, 7, -34,-90,0));
+        for (Location location : upgradesLocations.values()) {
+            location.add(0.5, 0, 0.5);
+        }
+
         //Diamond Gens
-        generators.put(Material.DIAMOND,new HashSet<>(Arrays.asList(
+        generators.put(Materials.DIAMOND,new HashSet<>(Arrays.asList(
             new Location(world, -1.5, 6, 5.5),
             new Location(world, -53.5, 6, 57.5),
             new Location(world, -53.5, 6, 5.5),
             new Location(world, -1.5, 6, 57.5))));
 
         //Emerald Gens
-        generators.put(Material.EMERALD,new HashSet<>(Arrays.asList(
+        generators.put(Materials.EMERALD,new HashSet<>(Arrays.asList(
             new Location(world, -27.5, 24, 31.5),
             new Location(world, -27.5, 7, 31.5))));
 
@@ -76,8 +95,20 @@ public class Constants {
         return teamGenerator.get(team);
     }
 
+    public static Location getShopLocation(TeamUtil team) {
+        return shopLocations.get(team);
+    }
+
+    public static Location getUpgradeLocation(TeamUtil team) {
+        return upgradesLocations.get(team);
+    }
+
     public static Set<Pair<Location, Location>> getNoPlaceZones() {
         return noPlaceZones;
+    }
+
+    public static Pair<Location, Location> getPlaceZone() {
+        return placeZone;
     }
 
     public static Pair<Location,Location> getBedLocation(TeamUtil team) {
@@ -92,11 +123,11 @@ public class Constants {
         return chests.get(location);
     }
 
-    public static Set<Location> getGenLocations(Material material) {
+    public static Set<Location> getGenLocations(Materials material) {
         return generators.get(material);
     }
 
-    public static Set<Material> getGenMaterials() {
+    public static Set<Materials> getGenMaterials() {
         return generators.keySet();
     }
 

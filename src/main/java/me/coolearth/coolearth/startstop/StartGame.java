@@ -28,6 +28,7 @@ public class StartGame {
         m_board.startScoreboards();
         m_voidCheck.startVoidCheck();
         Util.spawnArmorStands();
+        Util.spawnShopsAndUpgrades();
         GlobalVariables.gameStarted();
     }
 }

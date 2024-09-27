@@ -23,6 +23,16 @@ public class MathUtil {
         return true;
     }
 
+    public static String convertToTime(int seconds) {
+        int second = seconds % 60;
+        int minutes = (seconds / 60);
+        String zero = "";
+        if (second < 10) {
+            zero = "0";
+        }
+        return minutes + ":" + zero + second;
+    }
+
     public static boolean isBetweenTwoDoubles(double num, double firstNum, double secondNum) {
         if (firstNum<secondNum) {
             return firstNum <= num && num <= secondNum;

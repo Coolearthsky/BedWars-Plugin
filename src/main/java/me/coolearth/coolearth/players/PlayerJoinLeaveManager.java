@@ -6,6 +6,7 @@ import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.scoreboard.Board;
+import me.coolearth.coolearth.timed.Generators;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -17,12 +18,12 @@ import java.util.UUID;
 public class PlayerJoinLeaveManager {
     private final PlayerInfo m_playerInfo;
     private final JavaPlugin m_coolearth;
-    private final Board m_board;
+    private final Generators m_generators;
 
-    public PlayerJoinLeaveManager(PlayerInfo playerInfo, Board board, JavaPlugin coolearth) {
+    public PlayerJoinLeaveManager(PlayerInfo playerInfo, Generators generators, JavaPlugin coolearth) {
         m_playerInfo = playerInfo;
         m_coolearth = coolearth;
-        m_board = board;
+        m_generators = generators;
     }
 
     public void onPlayerJoin(Player player1) {
@@ -37,11 +38,7 @@ public class PlayerJoinLeaveManager {
             player1.teleport(Constants.getSpawn());
             return;
         }
-        if (player1.getScoreboard().getObjective("Bedwars") != null) {
-            m_board.updatePlayersScoreboard(player1);
-        } else {
-            m_board.createNewScoreboard(player1);
-        }
+        m_generators.updateSafe(player1);
         if (m_playerInfo.getPlayers().containsKey(player)) {
             if (m_playerInfo.getPlayersInfo(player1).getAlive() && player1.getGameMode().equals(GameMode.SPECTATOR)) {
                 m_playerInfo.getPlayersInfo(player1).onRespawn();
@@ -57,7 +54,8 @@ public class PlayerJoinLeaveManager {
         PlayerAddons value = new PlayerAddons(m_coolearth, team, player);
         m_playerInfo.getPlayers().put(player, value);
         TeamInfo teamInfo = m_playerInfo.getTeamInfo(team);
-        teamInfo.getMap().put(player, value);
+        teamInfo.createUpgradesForPlayer(player);
+        teamInfo.getPeopleOnTeam().put(player, value);
         Util.removeTeams(player1);
         player1.addScoreboardTag(team.getName());
         Util.setupPlayerFromStart(player1);
@@ -65,6 +63,6 @@ public class PlayerJoinLeaveManager {
 
     public void onPlayerQuit(Player player) {
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
-        ArmorPackets.stopLoop(player);
+        ArmorPackets.stopLoop(player.getUniqueId());
     }
 }

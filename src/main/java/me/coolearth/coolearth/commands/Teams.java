@@ -1,6 +1,7 @@
 package me.coolearth.coolearth.commands;
 
 import me.coolearth.coolearth.Util.TeamUtil;
+import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.scoreboard.Board;
@@ -31,7 +32,7 @@ public class Teams implements CommandExecutor {
         }
         if (args.length <= 1) {
             Player player = (Player) sender;
-            TeamUtil team = TeamUtil.get(args[0]);
+            TeamUtil team = TeamUtil.get(Util.makeFirstCapital(args[0].toLowerCase()));
             if (team != TeamUtil.NONE) {
                 m_playerInfo.updateTeams(player, team);
                 m_board.updateAllScoreboards();
@@ -50,7 +51,7 @@ public class Teams implements CommandExecutor {
                 }
             }
             if (player == null) return false;
-            TeamUtil team = TeamUtil.get(args[1]);
+            TeamUtil team = TeamUtil.get(Util.makeFirstCapital(args[1].toLowerCase()));
             if (team != TeamUtil.NONE) {
                 m_playerInfo.updateTeams(player,team);
                 m_board.updateAllScoreboards();

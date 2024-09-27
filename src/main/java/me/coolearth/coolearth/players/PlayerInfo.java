@@ -111,10 +111,10 @@ public class PlayerInfo {
         PlayerAddons playerAddons = m_players.get(playerUUID);
         if (playerAddons == null) return;
         TeamInfo teamInfo = m_teams.get(playerAddons.getTeam());
-        teamInfo.getMap().remove(playerUUID);
+        teamInfo.getPeopleOnTeam().remove(playerUUID);
         TeamInfo teamInfo1 = m_teams.get(team);
         playerAddons.setTeam(team, teamInfo1.hasBed());
-        teamInfo1.getMap().put(playerUUID, playerAddons);
+        teamInfo1.getPeopleOnTeam().put(playerUUID, playerAddons);
         Util.removeTeams(player);
         player.addScoreboardTag(team.getName());
     }

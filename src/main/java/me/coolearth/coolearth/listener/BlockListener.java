@@ -45,7 +45,7 @@ public class BlockListener implements Listener {
             TeamInfo teamInfo = m_playerInfo.getTeamInfo(team);
             if (team != Util.getTeam(player) && (teamInfo.isAnyoneOnTeamAlive() || teamInfo.hasBed())) {
                 event.setCancelled(true);
-                player.sendMessage("You cannot open opponent's chests till they are all eliminated and their bed is gone");
+                player.sendMessage(ChatColor.RED + "You cannot open this Chest as the " + team.getChatColor() + team.getName() + " Team " + ChatColor.RED + "has not been eliminated!");
             }
         }
     }
@@ -56,6 +56,7 @@ public class BlockListener implements Listener {
         if (!player.getScoreboardTags().contains("player")) return;
         if (!m_blockManager.checkIfPlacable(event.getBlockReplacedState())) {
             event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "You can't place blocks here!");
             return;
         }
         Block block = event.getBlock();
@@ -132,10 +133,12 @@ public class BlockListener implements Listener {
             if (type == Material.RED_BED ) {
                 TeamUtil red = TeamUtil.RED;
                 if (player.getScoreboardTags().contains(red.getName())) {
+                    player.sendMessage(ChatColor.RED + "You can't break your own bed!");
                     event.setCancelled(true);
                 } else {
                     TeamInfo teamInfo = m_playerInfo.getTeamInfo(red);
                     if (teamInfo == null) {
+                        player.sendMessage(ChatColor.RED + "You can't break blocks here!");
                         event.setCancelled(true);
                         return;
                     }
@@ -146,10 +149,12 @@ public class BlockListener implements Listener {
             else if (type == Material.BLUE_BED ) {
                 TeamUtil blue = TeamUtil.BLUE;
                 if (player.getScoreboardTags().contains(blue.getName())) {
+                    player.sendMessage(ChatColor.RED + "You can't break your own bed!");
                     event.setCancelled(true);
                 } else {
                     TeamInfo teamInfo = m_playerInfo.getTeamInfo(blue);
                     if (teamInfo == null) {
+                        player.sendMessage(ChatColor.RED + "You can't break blocks here!");
                         event.setCancelled(true);
                         return;
                     }
@@ -160,10 +165,12 @@ public class BlockListener implements Listener {
             else if (type == Material.YELLOW_BED ) {
                 TeamUtil yellow = TeamUtil.YELLOW;
                 if (player.getScoreboardTags().contains(yellow.getName())) {
+                    player.sendMessage(ChatColor.RED + "You can't break your own bed!");
                     event.setCancelled(true);
                 } else {
                     TeamInfo teamInfo = m_playerInfo.getTeamInfo(yellow);
                     if (teamInfo == null) {
+                        player.sendMessage(ChatColor.RED + "You can't break blocks here!");
                         event.setCancelled(true);
                         return;
                     }
@@ -174,10 +181,12 @@ public class BlockListener implements Listener {
             else if (type == Material.LIME_BED ) {
                 TeamUtil green = TeamUtil.GREEN;
                 if (player.getScoreboardTags().contains(green.getName())) {
+                    player.sendMessage(ChatColor.RED + "You can't break your own bed!");
                     event.setCancelled(true);
                 } else {
                     TeamInfo teamInfo = m_playerInfo.getTeamInfo(green);
                     if (teamInfo == null) {
+                        player.sendMessage(ChatColor.RED + "You can't break blocks here!");
                         event.setCancelled(true);
                         return;
                     }
@@ -189,6 +198,7 @@ public class BlockListener implements Listener {
             m_blockManager.remove(event.getBlock());
         } else {
             if (type == Material.FIRE) return;
+            player.sendMessage(ChatColor.RED + "You can't break blocks here!");
             event.setCancelled(true);
         }
     }

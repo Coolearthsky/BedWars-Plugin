@@ -1,6 +1,9 @@
 package me.coolearth.coolearth.scoreboard;
 
+import me.coolearth.coolearth.Util.Materials;
 import me.coolearth.coolearth.Util.TeamUtil;
+import me.coolearth.coolearth.math.MathUtil;
+import me.coolearth.coolearth.math.RomanNumber;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
 import org.bukkit.Bukkit;
@@ -22,20 +25,23 @@ public class Board {
         m_playerInfo = playerInfo;
     }
 
-    public void createNewScoreboard(Player player) {
+    public void createNewScoreboard(Player player, Materials material, int time, int level) {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective objective = scoreboard.registerNewObjective("Bedwars", "dummy");
 
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         objective.setDisplayName(ChatColor.YELLOW + "" + ChatColor.BOLD + "BED WARS");
-        objective.getScore(" ").setScore(4);
 
-        int i = 0;
-        for (TeamUtil team : TeamUtil.values()) {
+        TeamUtil[] values = TeamUtil.values();
+        int i = values.length-1;
+        for (TeamUtil team : values) {
             if (team.equals(TeamUtil.NONE)) continue;
             objective.getScore(createTeam(scoreboard, team, getOpt(team, m_playerInfo))).setScore(i);
-            i++;
+            i--;
         }
+        objective.getScore("  ").setScore(4);
+        objective.getScore(createTimer(scoreboard, material, time, level)).setScore(5);
+        objective.getScore(" ").setScore(6);
         player.setScoreboard(scoreboard);
     }
 
@@ -60,19 +66,32 @@ public class Board {
     public void createNewScoreboardEmpty(Player player) {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective objective = scoreboard.registerNewObjective("Bedwars", "dummy");
-
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         objective.setDisplayName(ChatColor.YELLOW + "" + ChatColor.BOLD + "BED WARS");
-        objective.getScore(" ").setScore(4);
 
-        int i = 0;
-        for (TeamUtil team : TeamUtil.values()) {
+        TeamUtil[] values = TeamUtil.values();
+        int i = values.length-1;
+        for (TeamUtil team : values) {
             if (team.equals(TeamUtil.NONE)) continue;
             objective.getScore(createTeam(scoreboard, team, Optional.empty())).setScore(i);
-            i++;
+            i--;
         }
+        objective.getScore("  ").setScore(4);
+        objective.getScore(createTimer(scoreboard, Materials.DIAMOND,6*60,2)).setScore(5);
+        objective.getScore(" ").setScore(6);
+
         player.setScoreboard(scoreboard);
     }
+
+    private String createTimer(Scoreboard scoreboard, Materials materials, int time, int level) {
+        Team team = scoreboard.registerNewTeam("timer");
+        String key = ChatColor.WHITE.toString();
+        team.addEntry(key);
+        team.setPrefix("");
+        team.setSuffix(materials.getName() + " " + RomanNumber.toRoman(level) + " in " + ChatColor.GREEN + MathUtil.convertToTime(time));
+        return key;
+    }
+
     private String createTeam(Scoreboard scoreboard, TeamUtil teamUtil, Optional<Integer> beds) {
         String name = teamUtil.getName();
         Team team = scoreboard.registerNewTeam(name);
@@ -111,6 +130,16 @@ public class Board {
         }
     }
 
+    public void updateTime(Materials materials, int time, int level) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (materials == null) {
+                player.getScoreboard().getTeam("timer").setSuffix("Dragon is coming trust guys");
+                return;
+            }
+            player.getScoreboard().getTeam("timer").setSuffix(materials.getName() + " " + RomanNumber.toRoman(level) + " in " + ChatColor.GREEN + MathUtil.convertToTime(time));
+        }
+    }
+
     public void updatePlayersScoreboard(Scoreboard scoreboard, TeamUtil team, Optional<Integer> bed) {
         Team team1 = scoreboard.getTeam(team.getName());
         assert team1 != null;
@@ -119,8 +148,7 @@ public class Board {
 
     public void updatePlayersScoreboard(Player player, TeamUtil... teams) {
         for (TeamUtil team : teams) {
-            Team team1 = player.getScoreboard().getTeam(team.getName());
-            team1.setSuffix(getChar(getOpt(team, m_playerInfo)));
+            updatePlayersScoreboard(player.getScoreboard(),team,getOpt(team, m_playerInfo));
         }
     }
 
@@ -129,6 +157,15 @@ public class Board {
         for (TeamUtil team : TeamUtil.values()) {
             if (team.equals(TeamUtil.NONE)) continue;
             updatePlayersScoreboard(scoreboard, team, getOpt(team, m_playerInfo));
+        }
+    }
+
+    public void updatePlayersScoreboardSafe(Player player, Materials material, int time, int level) {
+        if (player.getScoreboard().getObjective("Bedwars") != null) {
+            updatePlayersScoreboard(player);
+            updateTime(material, time, level);
+        } else {
+            createNewScoreboard(player, material, time, level);
         }
     }
 

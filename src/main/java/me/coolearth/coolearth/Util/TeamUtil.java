@@ -11,7 +11,7 @@ public enum TeamUtil {
     RED("Red", Color.RED, ChatColor.RED, Material.RED_BED),
     YELLOW("Yellow", Color.YELLOW, ChatColor.YELLOW, Material.YELLOW_BED),
     GREEN("Green", Color.LIME, ChatColor.GREEN, Material.LIME_BED),
-    BLUE("Blue", Color.BLUE, ChatColor.BLUE,Material.BLUE_BED),
+    BLUE("Blue", Color.BLUE, ChatColor.BLUE, Material.BLUE_BED),
     NONE(null, null, null, null);
     private final String m_name;
     private final Color m_color;
