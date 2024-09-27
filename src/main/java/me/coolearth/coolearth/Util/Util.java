@@ -4,6 +4,7 @@ import com.comphenix.protocol.wrappers.Pair;
 import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.math.MathUtil;
+import me.coolearth.coolearth.math.RomanNumber;
 import me.coolearth.coolearth.math.Rotation2d;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
@@ -14,9 +15,7 @@ import org.bukkit.block.Chest;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -55,6 +54,18 @@ public class Util {
         }
     }
 
+    public static Item findItemStack(Location location, Material material) {
+        for (Item entity: location.getWorld().getEntitiesByClass(Item.class)) {
+            ItemStack itemStack = entity.getItemStack();
+            if (material != itemStack.getType()) continue;
+            if (!Util.locationsEqualIgnoringRot(location, entity.getLocation())) {
+                continue;
+            }
+            return entity;
+        }
+        return null;
+    }
+
     public static void clearEffects(Player player) {
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
         player.removePotionEffect(PotionEffectType.HASTE);
@@ -68,20 +79,34 @@ public class Util {
     }
 
     public static void spawnItem(Location location, ItemStack material) {
-        World world = Bukkit.getWorld("world");
-        world.dropItem(location, material, item -> {
+        location.getWorld().dropItem(location, material, item -> {
             item.setVelocity(new Vector());
             item.setUnlimitedLifetime(true);
+            item.setPickupDelay(5);
         });
+    }
+
+    public static void spawnVillager(Location location, String tag) {
+        location.getWorld().spawn(location, Villager.class, t -> {
+            t.setInvulnerable(true);
+            t.setGravity(false);
+            t.addScoreboardTag(tag);
+            t.setAI(false);
+            t.setVillagerLevel(5);
+            t.setProfession(Villager.Profession.LIBRARIAN);
+        });
+    }
+
+    public static void spawnShopsAndUpgrades() {
+        for (TeamUtil teams : TeamUtil.values()) {
+            if (teams.equals(TeamUtil.NONE)) continue;
+            spawnVillager(Constants.getShopLocation(teams), "shop");
+            spawnVillager(Constants.getUpgradeLocation(teams), "upgrades");
+        }
     }
 
     public static void spawnItem(Location location, Material material) {
         spawnItem(location, new ItemStack(material));
-    }
-
-    public static void spawnItem(double x, double y, double z, Material material) {
-        World world = Bukkit.getWorld("world");
-        spawnItem(new Location(world, x, y,z), material);
     }
 
     public static void resetTeams() {
@@ -489,24 +514,50 @@ public class Util {
     }
 
     public static void spawnArmorStands() {
-        for (Material material : Constants.getGenMaterials()) {
+        for (Materials material : Constants.getGenMaterials()) {
             for (Location location : Constants.getGenLocations(material)) {
-                ArmorStand armorStand = location.getWorld().spawn(location.clone().add(0, 2, 0), ArmorStand.class);
-                armorStand.setInvisible(true);
-                armorStand.addScoreboardTag("generator");
-                armorStand.setInvulnerable(true);
-                switch (material) {
-                    case DIAMOND:
-                        armorStand.getEquipment().setHelmet(new ItemStack(Material.DIAMOND_BLOCK));
-                        break;
-                    case EMERALD:
-                        armorStand.getEquipment().setHelmet(new ItemStack(Material.EMERALD_BLOCK));
-                        break;
-                    default:
-                        throw new UnsupportedOperationException("Non-Recognized Material");
-                }
+                spawnArmorStandsGenerator(material, location);
             }
         }
+    }
+
+    public static void spawnArmorStandsGenerator(Materials materials, Location location) {
+        List<ArmorStand> armorStands = new ArrayList<>(4);
+        for (int i = 0; i < 4; i++) {
+            ArmorStand armorStand = spawnArmorStand(location.clone().add(0,i*0.4,0));
+            armorStand.addScoreboardTag("generator");
+            armorStand.addScoreboardTag(materials.getName());
+            armorStands.add(armorStand);
+        }
+        armorStands.get(0).addScoreboardTag("spinning");
+        setName(armorStands.get(1), ChatColor.YELLOW + "Spawns in " + ChatColor.RED + 30 + ChatColor.YELLOW + " seconds");
+        armorStands.get(1).addScoreboardTag("timed");
+        setName(armorStands.get(2),materials.getColor() + ChatColor.BOLD + materials.getName());
+        setName(armorStands.get(3),ChatColor.YELLOW + "Tier " + ChatColor.RED + RomanNumber.toRoman(1));
+        armorStands.get(3).addScoreboardTag("tier");
+        switch (materials) {
+            case DIAMOND:
+                armorStands.get(0).getEquipment().setHelmet(new ItemStack(Material.DIAMOND_BLOCK));
+                break;
+            case EMERALD:
+                armorStands.get(0).getEquipment().setHelmet(new ItemStack(Material.EMERALD_BLOCK));
+                break;
+            default:
+                throw new UnsupportedOperationException("Non-Recognized Material");
+        }
+    }
+
+    private static void setName(ArmorStand armorStand, String name) {
+        armorStand.setCustomName(name);
+        armorStand.setCustomNameVisible(true);
+    }
+
+    public static ArmorStand spawnArmorStand(Location location) {
+        ArmorStand armorStand = location.getWorld().spawn(location.clone().add(0, 2, 0), ArmorStand.class);
+        armorStand.setInvisible(true);
+        armorStand.setInvulnerable(true);
+        armorStand.setGravity(false);
+        return armorStand;
     }
 
     public static void broadcastMessage(String message) {
@@ -542,6 +593,13 @@ public class Util {
         return addNameAndLore(item, displayName,realName, loresArray);
     }
 
+    private static ItemStack addNameAndLore(ItemStack item, String displayName, String realName, String firstLore, String... lores) {
+        String[] loresArray = new String[lores.length + 1];
+        loresArray[0] = firstLore;
+        System.arraycopy(lores, 0, loresArray, 1, lores.length);
+        return addNameAndLore(item, displayName,realName, loresArray);
+    }
+
     private static ItemStack addNameAndLoreUpgrade(ItemStack item, String displayName, String realName, String lastLore, String secondToLastLore, String... lores) {
         String[] loresArray = new String[lores.length + 2];
         loresArray[loresArray.length-1] = lastLore;
@@ -560,23 +618,32 @@ public class Util {
         return addNameAndLore(item, displayName, realName, loresArray);
     }
 
-    public static ItemStack addNamesShopStyle(ItemStack item, String displayName, String realName, ItemStack cost, String... lores) {
+    public static ItemStack addNamesShopStyle(Boolean hasMoney, ItemStack item, String displayName, String realName, ItemStack cost, String... lores) {
         String s = "s";
-        if (cost.getAmount() == 1) s = "";
+        Material type = cost.getType();
+        Materials materials = Materials.get(type);
+        if (cost.getAmount() == 1 || !materials.getPlural()) s = "";
         int i = 0;
         for (String lore : lores) {
             lores[i] = "§7" + lore;
             i++;
         }
-        switch (cost.getType()) {
-            case IRON_INGOT:
-                return addNameAndLore(item, "§a" + displayName, realName, ("§7Cost: §f" + cost.getAmount() + " Iron"), "", lores);
-            case GOLD_INGOT:
-                return addNameAndLore(item, "§a" + displayName, realName, ("§7Cost: §6" + cost.getAmount() + " Gold"), "" , lores);
-            case EMERALD:
-                return addNameAndLore(item, "§a" + displayName, realName, ("§7Cost: §2" + cost.getAmount() + " Emerald" + s), "" , lores);
-            default:
-                throw new UnsupportedOperationException("Not bedwars currency");
+        String[] newLores = new String[lores.length + 2];
+        System.arraycopy(lores, 0, newLores, 0, lores.length);
+        newLores[newLores.length - 2] = "";
+        if (hasMoney != null) {
+            ChatColor color;
+            if (hasMoney) {
+                color = ChatColor.GREEN;
+                newLores[newLores.length - 1] = ChatColor.YELLOW + "Click to purchase!";
+            } else {
+                color = ChatColor.RED;
+                newLores[newLores.length - 1] = ChatColor.RED + "You don't have enough " + materials.getName() + s + "!";
+            }
+            return addNameAndLore(item, color + displayName, realName, ("§7Cost: " + materials.getColor() + cost.getAmount() + " " + materials.getName()) + s, "", newLores);
+        } else {
+            newLores[newLores.length - 1] = ChatColor.GREEN + "UNLOCKED";
+            return addNameAndLore(item,  ChatColor.RED + displayName, realName, "", newLores);
         }
     }
 
@@ -584,36 +651,92 @@ public class Util {
         return new Location(firstlocation.getWorld(), firstlocation.getX(), firstlocation.getY(), firstlocation.getZ()).equals(new Location(secondlocation.getWorld(), secondlocation.getX(), secondlocation.getY(), secondlocation.getZ()));
     }
 
-    public static ItemStack addNamesUpgradeStyle(ItemStack item, String displayName, String realName, Optional<Integer> cost, String... lores) {
+    public static ItemStack addNamesUpgradeStyle(boolean g, boolean hasMoney, ItemStack item, String displayName, String realName, int cost, String... lores) {
         int i = 0;
         for (String lore : lores) {
             lores[i] = "§7" + lore;
             i++;
         }
-        if (!cost.isPresent()) return addNameAndLoreUpgrade(item, "§a" + displayName, realName, "§7Maxed out", "" , lores);
         String s = "s";
-        if (cost.get() == 1) s = "";
-        return addNameAndLoreUpgrade(item, "§a" + displayName, realName, ("§7Cost: §b" + cost.get() + " Diamond" + s), "" , lores);
+        if (cost == 1) s = "";
+        String[] lastLore = new String[3];
+        lastLore[0] = "§7Cost: §b" + cost + " Diamond" + s;
+        lastLore[1] = "";
+        ChatColor color;
+        if (g) {
+            if (hasMoney) {
+                color = ChatColor.YELLOW;
+                lastLore[lastLore.length - 1] = ChatColor.YELLOW + "Click to purchase!";
+            } else {
+                color = ChatColor.RED;
+                lastLore[lastLore.length - 1] = ChatColor.RED + "You don't have enough Diamonds!";
+            }
+        } else {
+            color = ChatColor.GREEN;
+            lastLore[lastLore.length - 1] = ChatColor.GREEN + "UNLOCKED";
+        }
+        return addNameAndLoreUpgrade(item, color + displayName, realName, lastLore, "" , lores);
     }
 
-    public static ItemStack addNamesUpgradeStyle(ItemStack item, String displayName, String realName, Pair<Integer, int[]> cost, String... lores) {
-        String[] costArray = new String[cost.getSecond().length];
+    public static ItemStack addNamesTrapStyle(boolean hasMoney, ItemStack item, String displayName, String realName, Optional<Integer> cost, String... lores) {
+        int i = 0;
+        for (String lore : lores) {
+            lores[i] = "§7" + lore;
+            i++;
+        }
+        if (!cost.isPresent()) {
+            return addNameAndLoreUpgrade(item, ChatColor.RED + displayName, realName, ChatColor.RED + "Traps queue full!", "", lores);
+        }
+        String s = "s";
+        if (cost.get() == 1) s = "";
+        String[] lastLore = new String[3];
+        lastLore[0] = "§7Cost: §b" + cost.get() + " Diamond" + s;
+        lastLore[1] = "";
+        ChatColor color;
+        if (hasMoney) {
+            color = ChatColor.YELLOW;
+            lastLore[lastLore.length - 1] = ChatColor.YELLOW + "Click to purchase!";
+        } else {
+            color = ChatColor.RED;
+            lastLore[lastLore.length - 1] = ChatColor.RED + "You don't have enough Diamonds!";
+        }
+        return addNameAndLoreUpgrade(item, color + displayName, realName, lastLore, "" , lores);
+    }
+
+    public static ItemStack addNamesUpgradeStyle(boolean hasMoney, ItemStack item, String displayName, String realName, Pair<Integer, int[]> cost, String... lores) {
+        String[] costArray = new String[cost.getSecond().length + 2];
         for (int i = 0; i < cost.getSecond().length; i++) {
             String s = "s";
             if (cost.getSecond()[i] == 1) s = "";
             int view = i+1;
+            String chatColor;
              if (cost.getFirst() <= i) {
-                costArray[i] = ("§7Tier " + view + ": §b" + cost.getSecond()[i] + " Diamond" + s);
+                 chatColor = "§7";
             } else {
-                costArray[i] = ("§bTier " + view + ": " + cost.getSecond()[i] + " Diamond" + s);
+                 chatColor = ChatColor.GREEN.toString();
             }
+            costArray[i] = (chatColor + "Tier " + view + ": §b" + cost.getSecond()[i] + " Diamond" + s);
         }
         int i = 0;
         for (String lore : lores) {
             lores[i] = "§7" + lore;
             i++;
         }
-        return addNameAndLoreUpgrade(item, "§a" + displayName, realName, costArray, "" , lores);
+        costArray[costArray.length-2] = "";
+        ChatColor color;
+        if (cost.getFirst() != cost.getSecond().length) {
+            if (hasMoney) {
+                color = ChatColor.YELLOW;
+                costArray[costArray.length - 1] = ChatColor.YELLOW + "Click to purchase!";
+            } else {
+                color = ChatColor.RED;
+                costArray[costArray.length - 1] = ChatColor.RED + "You don't have enough Diamonds!";
+            }
+        } else {
+            color = ChatColor.GREEN;
+            costArray[costArray.length - 1] = ChatColor.GREEN + "UNLOCKED";
+        }
+        return addNameAndLoreUpgrade(item, color + displayName, realName, costArray, "" , lores);
     }
 
     public static ItemStack createPotion(Color color, PotionEffectType potionEffectType, int duration, int amplifier) {
@@ -808,5 +931,11 @@ public class Util {
             itemStacks[i] = new ItemStack(materials[i]);
         }
         addToShop(inventory, startpoint, itemStacks);
+    }
+
+    public static String makeFirstCapital(String string) {
+        char[] chars = string.toCharArray();
+        chars[0] = Character.toUpperCase(chars[0]);
+        return new String(chars);
     }
 }

@@ -2,6 +2,7 @@ package me.coolearth.coolearth.listener;
 
 import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.timed.MobManager;
 import me.coolearth.coolearth.timed.TargetManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -36,7 +37,7 @@ public class MobListener implements Listener {
             Location spawnLocation = spawnBlock.getLocation().add(0.5, 0, 0.5);
             Player player = event.getPlayer();
             Mob entity = spawnLocation.getWorld().spawn(spawnLocation, IronGolem.class);
-            m_targetManager.addLivingEntity(entity,player);
+            m_targetManager.addLivingEntity(entity,player, 240);
             if (player.getGameMode() != org.bukkit.GameMode.CREATIVE) {
                 item.setAmount(item.getAmount() - 1);
             }
@@ -51,7 +52,7 @@ public class MobListener implements Listener {
             if (!(shooter instanceof Player)) return;
             Player player = (Player) shooter;
             Mob mob = entity.getWorld().spawn(entity.getLocation(), Silverfish.class);
-            m_targetManager.addLivingEntity(mob, player);
+            m_targetManager.addLivingEntity(mob, player,15);
         }
     }
     @EventHandler

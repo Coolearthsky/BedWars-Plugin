@@ -1,117 +1,156 @@
 package me.coolearth.coolearth.timed;
 
-import com.comphenix.protocol.wrappers.Pair;
+import me.coolearth.coolearth.Util.Materials;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.Constants;
+import me.coolearth.coolearth.math.RomanNumber;
+import me.coolearth.coolearth.scoreboard.Board;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
-
 public class Generators {
     private final JavaPlugin m_coolearth;
-    private final Map<Material, BukkitRunnable> m_spawners = new HashMap<>();
+    private final Board m_board;
+    private BukkitRunnable m_spawners = null;
+    private int seconds = 0;
+    private Materials upgrade = Materials.DIAMOND;
+    private int level = 0;
+    private final Map<Materials, Integer> currentLevel = new HashMap<>();
+    private double[] m_timeBetweenUpdatesMinutes = null;
 
-    public Generators(JavaPlugin coolearth) {
+    public Generators(JavaPlugin coolearth, Board board) {
         m_coolearth = coolearth;
+        m_board = board;
     }
 
     public void start() {
-        List<Pair<Optional<Integer>, Integer>> diamondLoops = new ArrayList<>();
-        diamondLoops.add(new Pair<>(Optional.of(16), 50));
-        diamondLoops.add(new Pair<>(Optional.of(16), 40));
-        diamondLoops.add(new Pair<>(Optional.empty(), 30));
-        List<Pair<Optional<Integer>, Integer>> emeraldLoops = new ArrayList<>();
-        emeraldLoops.add(new Pair<>(Optional.of(16), 60));
-        emeraldLoops.add(new Pair<>(Optional.of(16), 45));
-        emeraldLoops.add(new Pair<>(Optional.empty(), 30));
-        setLoops(diamondLoops,Material.DIAMOND);
-        setLoops(emeraldLoops,Material.EMERALD);
+        Map<Materials, List<Integer>> loopTimes = new HashMap<>();
+        List<Integer> emerald = Arrays.asList(50,40,30);
+        List<Integer> diamond = Arrays.asList(30,20,15);
+        loopTimes.put(Materials.DIAMOND,diamond);
+        loopTimes.put(Materials.EMERALD,emerald);
+        setLoops(loopTimes,
+                6,12,17,22);
     }
 
     public void resetAllLoops() {
-        for (BukkitRunnable runnable : m_spawners.values()) {
-            runnable.cancel();
-        }
-        m_spawners.clear();
+        if (m_spawners == null) return;
+        m_spawners.cancel();
+        upgrade = Materials.DIAMOND;
+        seconds = 0;
+        currentLevel.clear();
+        level = 0;
+        m_timeBetweenUpdatesMinutes = null;
+        m_spawners = null;
     }
 
-    private void setLoops(List<Pair<Optional<Integer>, Integer>> loopsAndSeconds, Material material) {
-        closeRunnable(material);
-        int seconds = loopsAndSeconds.get(0).getSecond();
-        if (!loopsAndSeconds.get(0).getFirst().isPresent()) {
-            setInfinite(seconds, material);
-            return;
-        }
-        int loops = loopsAndSeconds.get(0).getFirst().get();
-        m_spawners.put(material, new BukkitRunnable() {
-            int count = loops;
+    private void setLoops(Map<Materials, List<Integer>> loopTimes, double... timeBetweenUpdatesMinutes) {
+        m_timeBetweenUpdatesMinutes = timeBetweenUpdatesMinutes;
+        m_spawners = new BukkitRunnable() {
+            {
+                currentLevel.put(Materials.DIAMOND, 0);
+                currentLevel.put(Materials.EMERALD, 0);
+            }
             public void run()
             {
-                count--;
-                if (count <= 0) {
-                    loopsAndSeconds.remove(0);
-                    setLoops(loopsAndSeconds, material);
+                seconds++;
+                for (Materials materials:Constants.getGenMaterials()) {
+                    if (seconds % loopTimes.get(materials).get(currentLevel.get(materials)) == 0) {
+                        if (!Bukkit.getOnlinePlayers().isEmpty()) {
+                            setItem(materials);
+                        }
+                    }
                 }
-                if (!Bukkit.getOnlinePlayers().isEmpty()) {
-                    setItem(material);
+                for (ArmorStand armorStand : Bukkit.getWorld("world").getEntitiesByClass(ArmorStand.class)) {
+                    Set<String> scoreboardTags = armorStand.getScoreboardTags();
+                    if (!scoreboardTags.contains("generator") || !scoreboardTags.contains("timed")) continue;
+                    int time;
+                    if (scoreboardTags.contains(Materials.DIAMOND.getName())) {
+                        Integer i = loopTimes.get(Materials.DIAMOND).get(currentLevel.get(Materials.DIAMOND));
+                        time = i - seconds % i;
+                    } else {
+                        Integer i = loopTimes.get(Materials.EMERALD).get(currentLevel.get(Materials.EMERALD));
+                        time = i - seconds % i;
+                    }
+                    armorStand.setCustomName(ChatColor.YELLOW + "Spawns in " + ChatColor.RED + time + ChatColor.YELLOW + " seconds");
                 }
+                if (level >= 4) {
+                    m_board.updateTime(null,0,0);
+                    return;
+                }
+                if (seconds >= 60 * m_timeBetweenUpdatesMinutes[level]) {
+                    level++;
+                    if (upgrade.equals(Materials.DIAMOND)) {
+                        int tempLevel = currentLevel.get(Materials.DIAMOND) + 1;
+                        currentLevel.replace(Materials.DIAMOND, tempLevel);
+                        for (ArmorStand armorStand : Bukkit.getWorld("world").getEntitiesByClass(ArmorStand.class)) {
+                            Set<String> scoreboardTags = armorStand.getScoreboardTags();
+                            if (!scoreboardTags.contains("generator") || !scoreboardTags.contains("tier") || !scoreboardTags.contains(Materials.DIAMOND.getName())) continue;
+                            armorStand.setCustomName(ChatColor.YELLOW + "Tier " + ChatColor.RED + RomanNumber.toRoman(tempLevel + 1));
+                        }
+                        upgrade = Materials.EMERALD;
+                    } else {
+                        int tempLevel = currentLevel.get(Materials.EMERALD) + 1;
+                        currentLevel.replace(Materials.EMERALD, tempLevel);
+                        for (ArmorStand armorStand : Bukkit.getWorld("world").getEntitiesByClass(ArmorStand.class)) {
+                            Set<String> scoreboardTags = armorStand.getScoreboardTags();
+                            if (!scoreboardTags.contains("generator") || !scoreboardTags.contains("tier") || !scoreboardTags.contains(Materials.EMERALD.getName())) continue;
+                            armorStand.setCustomName(ChatColor.YELLOW + "Tier " + ChatColor.RED + RomanNumber.toRoman(tempLevel + 1));
+                        }
+                        upgrade = Materials.DIAMOND;
+                    }
+                    if (level >= 4) {
+                        m_board.updateTime(null,0,0);
+                        return;
+                    }
+                }
+                updateTime();
             }
-        });
-        m_spawners.get(material).runTaskTimer(m_coolearth, seconds*20L, seconds*20L);
+        };
+        m_spawners.runTaskTimer(m_coolearth, 20, 20);
     }
 
-    private void setInfinite(double seconds, Material pair)  {
-        closeRunnable(pair);
-        m_spawners.put(pair, new BukkitRunnable() {
-            public void run()
-            {
-                setItem(pair);
-            }
-        });
-        m_spawners.get(pair).runTaskTimer(m_coolearth, (long) (seconds*20), (long) (seconds*20));
+    public void updateTime() {
+        m_board.updateTime(upgrade,(int) (60* m_timeBetweenUpdatesMinutes[level]) - seconds, currentLevel.get(upgrade) + 2);
     }
 
-    public void closeRunnable(Material pair) {
-        BukkitRunnable runnable = m_spawners.get(pair);
-        if (runnable != null) {
-            runnable.cancel();
-            m_spawners.remove(pair);
-        }
+    public void updateSafe(Player player) {
+        m_board.updatePlayersScoreboardSafe(player, upgrade,(int) (60* m_timeBetweenUpdatesMinutes[level]) - seconds, currentLevel.get(upgrade) + 2);
     }
 
-    private void setItem(Material material) {
+    private void setItem(Materials material) {
         for (Location location: Constants.getGenLocations(material)) {
-            spawnItemSmart(location, material);
+            spawnItemSmart(location, material.getMaterial());
         }
     }
 
     private void spawnItemSmart(Location location, Material material){
-        int amount = 0;
-        for (Item entity: location.getWorld().getEntitiesByClass(Item.class)) {
-            ItemStack itemStack = entity.getItemStack();
-            if (material != itemStack.getType()) continue;
-            if (!Util.locationsEqualIgnoringRot(location, entity.getLocation())) {
-                continue;
-            }
-            amount++;
+        Item item = Util.findItemStack(location, material);
+        if (item == null) {
+            Util.spawnItem(location, material);
+            return;
         }
+        ItemStack itemStack = item.getItemStack();
         switch (material) {
             case EMERALD:
-                if (amount >= 4) return;
+                if (itemStack.getAmount() >= 4) return;
                 break;
             case DIAMOND:
-                if (amount >= 8) return;
+                if (itemStack.getAmount() >= 8) return;
                 break;
             default:
                 throw new UnsupportedOperationException("Not a real item");
         }
-        Util.spawnItem(location, material);
+        item.setItemStack(new ItemStack(itemStack.getType(),itemStack.getAmount() + 1));
     }
 }

@@ -66,7 +66,7 @@ public class ArmorPackets {
             }
             m_manager.sendServerPacket(p, packetContainer);
         }
-        stopLoop(player);
+        stopLoop(player.getUniqueId());
         BukkitRunnable runnable = new BukkitRunnable() {
             @Override
             public void run() {
@@ -92,11 +92,11 @@ public class ArmorPackets {
         m_runnable.put(player.getUniqueId(), runnable);
     }
 
-    public static void stopLoop(Player player) {
-        BukkitRunnable runnable = m_runnable.get(player.getUniqueId());
+    public static void stopLoop(UUID player) {
+        BukkitRunnable runnable = m_runnable.get(player);
         if (runnable == null) return;
         runnable.cancel();
-        m_runnable.remove(player.getUniqueId());
+        m_runnable.remove(player);
     }
 
     private static void setInvisArmor(PacketContainer fakeEquipmentPacket) {

@@ -1,6 +1,7 @@
 package me.coolearth.coolearth.commands;
 
 import me.coolearth.coolearth.Util.TeamUtil;
+import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
@@ -21,9 +22,9 @@ public class Upgrade implements CommandExecutor {
             sender.sendMessage("The game must be active to activate this command");
             return false;
         }
-        TeamInfo teamInfo = m_shopListener.getTeamInfo(TeamUtil.get(args[0]));
+        TeamInfo teamInfo = m_shopListener.getTeamInfo(TeamUtil.get(Util.makeFirstCapital(args[0].toLowerCase())));
         if (teamInfo == null) {
-            sender.sendMessage("Match is not on");
+            sender.sendMessage("Unknown argument");
             return false;
         }
         if (args.length > 1) {

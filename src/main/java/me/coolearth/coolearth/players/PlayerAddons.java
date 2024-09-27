@@ -1,8 +1,7 @@
 package me.coolearth.coolearth.players;
 
-import me.coolearth.coolearth.Util.Trio;
-import me.coolearth.coolearth.Util.Util;
-import me.coolearth.coolearth.Util.TeamUtil;
+import me.coolearth.coolearth.PacketManager.ArmorPackets;
+import me.coolearth.coolearth.Util.*;
 import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.menus.menuItems.Items;
 import org.bukkit.*;
@@ -33,6 +32,7 @@ public class PlayerAddons {
     private boolean m_sharpness;
     private final JavaPlugin m_coolearth;
     private boolean m_shearsUpgrade;
+    private boolean m_inUpgrades;
     private Material m_armor;
     private final UUID m_player;
     private Optional<BukkitRunnable> m_ignoreTrap;
@@ -50,15 +50,28 @@ public class PlayerAddons {
         m_sharpness = false;
         m_shearsUpgrade = false;
         m_ignoreTrap = Optional.empty();
+        m_inUpgrades = false;
         for (int i = 0; i < 9; i++) {
             Inventory shop = Bukkit.createInventory(Bukkit.getPlayer(player), 54, "Shop");
             m_shop.add(shop);
         }
         m_onRespawn = Optional.empty();
-        createStore(m_shop);
+        createStore();
         m_currentShopMenu = Optional.empty();
         m_pickaxeLevel = Optional.empty();
         m_axeLevel = Optional.empty();
+    }
+
+    public void enteredUpgrades() {
+        m_inUpgrades = true;
+    }
+
+    public void leftUpgrades() {
+        m_inUpgrades = false;
+    }
+
+    public boolean inUpgrades() {
+        return m_inUpgrades;
     }
 
     public boolean isAlive() {
@@ -71,6 +84,8 @@ public class PlayerAddons {
 
     public void gotShears() {
         m_shearsUpgrade = true;
+        menuOne(m_shop.get(0));
+        menuFive(m_shop.get(4));
     }
 
     public void stopAllLoops(){
@@ -118,23 +133,28 @@ public class PlayerAddons {
 
     public void closeInventory() {
         m_currentShopMenu = Optional.empty();
+        leftUpgrades();
     }
 
-    private void createStore(List<Inventory> storeInventories) {
+    private void createStore() {
         for (int i = 0; i < 9; i++) {
             Player player = Bukkit.getPlayer(m_player);
             if (player == null) return;
             Inventory shop = Bukkit.createInventory(player, 54, "Shop");
             createShopMenu(shop, i);
             createShop(shop, i);
-            storeInventories.set(i,shop);
+            m_shop.set(i,shop);
         }
+    }
+
+    public boolean inMenu() {
+        return m_currentShopMenu.isPresent();
     }
 
     public void setTeam(TeamUtil team, boolean hasBed) {
         m_team = team;
         m_hasBed = hasBed;
-        createStore(m_shop);
+        createStore();
     }
 
     public TeamUtil getTeam() {
@@ -159,8 +179,10 @@ public class PlayerAddons {
     }
 
     public void setLowerArmor(Items items) {
-        m_armor = getItem(items).getType();
+        m_armor = getDisplayItem(items).getType();
         setLowerArmor(m_armor);
+        menuOne(m_shop.get(0));
+        menuFour(m_shop.get(3));
     }
 
     private void setLowerArmor(Material material) {
@@ -235,131 +257,148 @@ public class PlayerAddons {
         Util.addToShop(inventory, greenPlacement + 9, Material.LIME_STAINED_GLASS_PANE);
     }
 
-    public ItemStack getItem(Items material) {
+    public ItemStack getDisplayItem(Items material) {
+        Player player = Bukkit.getPlayer(m_player);
+        ItemStack firstCost = material.getFirstCost();
+        PlayerInventory inventory = player.getInventory();
         switch (material) {
             case WOOL:
                 String goodForBridging = "Cheap blocks, good for bridging.";
                 int amount = 16;
                 switch (m_team) {
                     case RED:
-                        return Util.addNamesShopStyle(new ItemStack(Material.RED_WOOL, amount), "Red Wool", material.getName() , material.getFirstCost(), goodForBridging);
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_WOOL, amount), "Red Wool", material.getName() , firstCost, goodForBridging);
                     case YELLOW:
-                        return Util.addNamesShopStyle(new ItemStack(Material.YELLOW_WOOL, amount), "Yellow Wool", material.getName(), material.getFirstCost(),goodForBridging);
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_WOOL, amount), "Yellow Wool", material.getName(), firstCost, goodForBridging);
                     case GREEN:
-                        return Util.addNamesShopStyle(new ItemStack(Material.LIME_WOOL, amount), "Green Wool", material.getName(), material.getFirstCost(),goodForBridging);
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_WOOL, amount), "Green Wool", material.getName(), firstCost, goodForBridging);
                     case BLUE:
-                        return Util.addNamesShopStyle(new ItemStack(Material.BLUE_WOOL, amount), "Blue Wool", material.getName(), material.getFirstCost(),goodForBridging);
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_WOOL, amount), "Blue Wool", material.getName(), firstCost, goodForBridging);
                     case NONE:
-                        return Util.addNamesShopStyle(new ItemStack(Material.WHITE_WOOL, amount), "White Wool", material.getName(), material.getFirstCost(),goodForBridging);
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.WHITE_WOOL, amount), "White Wool", material.getName(), firstCost, goodForBridging);
                     default:
                         throw new UnsupportedOperationException("Not a real team");
                 }
             case WOOD:
-                return Util.addNamesShopStyle(new ItemStack(Material.OAK_PLANKS,16), "Wood", material.getName(), material.getFirstCost(), "Stronger bed defense then wool,", "But still pretty weak");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.OAK_PLANKS,16), "Wood", material.getName(), firstCost, "Stronger bed defense then wool,", "But still pretty weak");
             case END_STONE:
-                return Util.addNamesShopStyle(new ItemStack(Material.END_STONE,12), "End Stone", material.getName(), material.getFirstCost(), "Strong bed defense, renders fireballs useless");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.END_STONE,12), "End Stone", material.getName(), firstCost, "Strong bed defense, renders fireballs useless");
             case OBSIDIAN:
-                return Util.addNamesShopStyle(new ItemStack(Material.OBSIDIAN,4), "Obsidian", material.getName(), material.getFirstCost(), "The best bed defense, very expensive");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.OBSIDIAN,4), "Obsidian", material.getName(), firstCost, "The best bed defense, very expensive");
             case BLAST_PROOF_GLASS:
                 switch (m_team) {
                     case RED:
-                        return Util.addNamesShopStyle(new ItemStack(Material.RED_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), material.getFirstCost(), "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     case YELLOW:
-                        return Util.addNamesShopStyle(new ItemStack(Material.YELLOW_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), material.getFirstCost(), "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     case GREEN:
-                        return Util.addNamesShopStyle(new ItemStack(Material.LIME_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), material.getFirstCost(), "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     case BLUE:
-                        return Util.addNamesShopStyle(new ItemStack(Material.BLUE_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), material.getFirstCost(), "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     case NONE:
-                        return Util.addNamesShopStyle(new ItemStack(Material.GLASS,4), "Blast Proof Glass", material.getName(), material.getFirstCost(), "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     default:
                         throw new UnsupportedOperationException("Not a real team");
                 }
             case LADDERS:
-                return Util.addNamesShopStyle(new ItemStack(Material.LADDER,8), "Ladders", material.getName(), material.getFirstCost(), "Ladders, they help climb.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LADDER,8), "Ladders", material.getName(), firstCost, "Ladders, they help climb.");
             case TERRACOTTA:
                 switch (m_team) {
                     case RED:
-                        return Util.addNamesShopStyle(new ItemStack(Material.RED_TERRACOTTA,16), "Terracotta", material.getName(), material.getFirstCost(), "Strong yet quite cheap bed defense.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     case YELLOW:
-                        return Util.addNamesShopStyle(new ItemStack(Material.YELLOW_TERRACOTTA,16), "Terracotta", material.getName(), material.getFirstCost(), "Strong yet quite cheap bed defense.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     case GREEN:
-                        return Util.addNamesShopStyle(new ItemStack(Material.LIME_TERRACOTTA,16), "Terracotta", material.getName(), material.getFirstCost(), "Strong yet quite cheap bed defense.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     case BLUE:
-                        return Util.addNamesShopStyle(new ItemStack(Material.BLUE_TERRACOTTA,16), "Terracotta", material.getName(), material.getFirstCost(), "Strong yet quite cheap bed defense.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     case NONE:
-                        return Util.addNamesShopStyle(new ItemStack(Material.TERRACOTTA,16), "Terracotta", material.getName(), material.getFirstCost(), "Strong yet quite cheap bed defense.");
+                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     default:
                         throw new UnsupportedOperationException("Not a real team");
                 }
             case STONE_SWORD:
-                return Util.addNamesShopStyle(getSharp(Material.STONE_SWORD), "Stone Sword", material.getName(), material.getFirstCost(), "Good value cheap sword.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.STONE_SWORD), "Stone Sword", material.getName(), firstCost, "Good value cheap sword.");
             case IRON_SWORD:
-                return Util.addNamesShopStyle(getSharp(Material.IRON_SWORD), "Iron Sword", material.getName(), material.getFirstCost(), "Slightly more expense but more powerful sword.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.IRON_SWORD), "Iron Sword", material.getName(), firstCost, "Slightly more expense but more powerful sword.");
             case DIAMOND_SWORD:
-                return Util.addNamesShopStyle(getSharp(Material.DIAMOND_SWORD), "Diamond Sword", material.getName(), material.getFirstCost(), "Very powerful endgame sword.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.DIAMOND_SWORD), "Diamond Sword", material.getName(), firstCost, "Very powerful endgame sword.");
             case NETHERITE_SWORD:
-                return Util.addNamesShopStyle(getSharp(Material.NETHERITE_SWORD), "Netherite Sword", material.getName(), material.getFirstCost(), "The last sword you will ever need.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.NETHERITE_SWORD), "Netherite Sword", material.getName(), firstCost, "The last sword you will ever need.");
             case KNOCKBACK_STICK:
-                return Util.addNamesShopStyle(Util.createWithEnchantment(Enchantment.KNOCKBACK, Material.STICK), "Knockback Stick", material.getName(), material.getFirstCost(), "Stick blessed with the power of knockback," , "use it to bully your enemies on bridges.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createWithEnchantment(Enchantment.KNOCKBACK, Material.STICK), "Knockback Stick", material.getName(), firstCost, "Stick blessed with the power of knockback," , "use it to bully your enemies on bridges.");
             case PERMANENT_CHAINMAIL_ARMOR:
-                return Util.addNamesShopStyle(getProt(Material.CHAINMAIL_BOOTS), "Permanent Chainmail Armor", material.getName(), material.getFirstCost(), "Permanent chainmail armor,","quite the bargain.");
+                Boolean s = null;
+                if (canSetArmor(material)) s = inventory.contains(firstCost.getType(), firstCost.getAmount());
+                return Util.addNamesShopStyle(s,getProt(Material.CHAINMAIL_BOOTS), "Permanent Chainmail Armor", material.getName(), firstCost, "Permanent chainmail armor,","quite the bargain.");
             case PERMANENT_IRON_ARMOR:
-                return Util.addNamesShopStyle(getProt(Material.IRON_BOOTS), "Permanent Iron Armor", material.getName(), material.getFirstCost(), "Permanent iron armor, also","quite the bargain.");
+                Boolean contains = null;
+                if (canSetArmor(material)) contains = inventory.contains(firstCost.getType(), firstCost.getAmount());
+                return Util.addNamesShopStyle(contains,getProt(Material.IRON_BOOTS), "Permanent Iron Armor", material.getName(), firstCost, "Permanent iron armor, also","quite the bargain.");
             case PERMANENT_DIAMOND_ARMOR:
-                return Util.addNamesShopStyle(getProt(Material.DIAMOND_BOOTS), "Permanent Diamond Armor", material.getName(), material.getFirstCost(), "Permanent diamond armor, very","powerful endgame armor.");
+                Boolean d = null;
+                if (canSetArmor(material)) d = inventory.contains(firstCost.getType(), firstCost.getAmount());
+                return Util.addNamesShopStyle(d,getProt(Material.DIAMOND_BOOTS), "Permanent Diamond Armor", material.getName(), firstCost, "Permanent diamond armor, very","powerful endgame armor.");
             case PERMANENT_NETHERITE_ARMOR:
-                return Util.addNamesShopStyle(getProt(Material.NETHERITE_BOOTS), "Permanent Netherite Armor", material.getName(), material.getFirstCost(), "Permanent netherite armor,", "the final endgame armor.");
+                Boolean c = null;
+                if (canSetArmor(material)) c = inventory.contains(firstCost.getType(), firstCost.getAmount());
+                return Util.addNamesShopStyle(c,getProt(Material.NETHERITE_BOOTS), "Permanent Netherite Armor", material.getName(), firstCost, "Permanent netherite armor,", "the final endgame armor.");
             case PERMANENT_SHEARS:
-                return Util.addNamesShopStyle(Util.createWithUnbreakable(Material.SHEARS), "Permanent Shears", material.getName(), material.getFirstCost(), "Permanent shears allowing you", "to always break wool", "faster than your enemies.");
+                Boolean a = null;
+                if (!hasShears()) a = inventory.contains(firstCost.getType(), firstCost.getAmount());
+                return Util.addNamesShopStyle(a,Util.createWithUnbreakable(Material.SHEARS), "Permanent Shears", material.getName(), firstCost, "Permanent shears allowing you", "to always break wool", "faster than your enemies.");
             case PICKAXE_UPGRADE:
                 Trio<ItemStack, ItemStack, String> pickaxe = getPickaxeInfo();
-                return Util.addNamesShopStyle(pickaxe.getFirst(), pickaxe.getThird(), material.getName(), pickaxe.getSecond(), "Pickaxe upgrades, necessary for breaking","into opponents beds, the more you spend ","on pickaxes the faster your heists will be.");
+                Boolean containse1 = null;
+                if (!m_pickaxeLevel.isPresent() || !m_pickaxeLevel.get().equals(Material.NETHERITE_PICKAXE)) containse1 = inventory.contains(pickaxe.getSecond().getType(), pickaxe.getSecond().getAmount());
+                return Util.addNamesShopStyle(containse1,pickaxe.getFirst(), pickaxe.getThird(), material.getName(), pickaxe.getSecond(), "Pickaxe upgrades, necessary for breaking","into opponents beds, the more you spend ","on pickaxes the faster your heists will be.");
             case AXE_UPGRADE:
                 Trio<ItemStack, ItemStack, String> axe = getAxeInfo();
-                return Util.addNamesShopStyle(getSharp(axe.getFirst()), axe.getThird(), material.getName(), axe.getSecond(), "Axe upgrades, necessary are","sometimes necessary for","breaking into opponents beds,","they are useful mainly for", "wood defenses and damage.");
+                Boolean contains1 = null;
+                if (!m_axeLevel.isPresent() || !m_axeLevel.get().equals(Material.NETHERITE_AXE)) contains1 = inventory.contains(axe.getSecond().getType(), axe.getSecond().getAmount());
+                return Util.addNamesShopStyle(contains1,getSharp(axe.getFirst()), axe.getThird(), material.getName(), axe.getSecond(), "Axe upgrades, necessary are","sometimes necessary for","breaking into opponents beds,","they are useful mainly for", "wood defenses and damage.");
             case ARROW:
-                return Util.addNamesShopStyle(new ItemStack(Material.ARROW,6), "Arrows", material.getName(), material.getFirstCost(), "Arrows are a necessity if you want to buy bows", "as they are literally your ammo.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.ARROW,6), "Arrows", material.getName(), firstCost, "Arrows are a necessity if you want to buy bows", "as they are literally your ammo.");
             case REGULAR_BOW:
-                return Util.addNamesShopStyle(Util.createWithUnbreakable(Material.BOW), "Bow", material.getName(), material.getFirstCost(), "Base bow, still a powerful weapon for knocking your", "opponents off their bridges for a good price.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createWithUnbreakable(Material.BOW), "Bow", material.getName(), firstCost, "Base bow, still a powerful weapon for knocking your", "opponents off their bridges for a good price.");
             case POWER_BOW:
-                return Util.addNamesShopStyle(Util.createWithEnchantmentAndUnbreakable(Enchantment.POWER,Material.BOW), "Power Bow", material.getName(), material.getFirstCost(), "The more powerful bow, a good late game purchase.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createWithEnchantmentAndUnbreakable(Enchantment.POWER,Material.BOW), "Power Bow", material.getName(), firstCost, "The more powerful bow, a good late game purchase.");
             case PUNCH_BOW:
-                return Util.addNamesShopStyle(Util.addEnchantment(Enchantment.PUNCH,Util.createWithEnchantmentAndUnbreakable(Enchantment.POWER,Material.BOW)), "Punch Bow", material.getName(), material.getFirstCost(), "The endgame bow, watch your opponents fly from a", "single hit with this bad boy.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.addEnchantment(Enchantment.PUNCH,Util.createWithEnchantmentAndUnbreakable(Enchantment.POWER,Material.BOW)), "Punch Bow", material.getName(), firstCost, "The endgame bow, watch your opponents fly from a", "single hit with this bad boy.");
             case JUMP_BOOST_POTION:
-                return Util.addNamesShopStyle(Util.createPotion(Color.LIME, PotionEffectType.JUMP_BOOST, 60*20, 4), "Jump Boost Potion", material.getName(), material.getFirstCost(), "This potion will make you jump","over all your opponents defenses...", "for 60 seconds.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.LIME, PotionEffectType.JUMP_BOOST, 60*20, 4), "Jump Boost Potion", material.getName(), firstCost, "This potion will make you jump","over all your opponents defenses...", "for 60 seconds.");
             case SPEED_POTION:
-                return Util.addNamesShopStyle(Util.createPotion(Color.YELLOW, PotionEffectType.SPEED, 60*20, 1), "Speed Potion", material.getName(), material.getFirstCost(), "This potion will make you speed","right past all your opponents...", "for 60 seconds.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.YELLOW, PotionEffectType.SPEED, 60*20, 1), "Speed Potion", material.getName(), firstCost, "This potion will make you speed","right past all your opponents...", "for 60 seconds.");
             case INVISIBILTY_POTION:
-                return Util.addNamesShopStyle(Util.createPotion(Color.WHITE, PotionEffectType.INVISIBILITY, 30*20, 0), "Invisibility Potion", material.getName(), material.getFirstCost(), "This potion will make you sneak","right past all your opponents...", "for 30 seconds.");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.WHITE, PotionEffectType.INVISIBILITY, 30*20, 0), "Invisibility Potion", material.getName(), firstCost, "This potion will make you sneak","right past all your opponents...", "for 30 seconds.");
             case GOLDEN_APPLE:
-                return Util.addNamesShopStyle(new ItemStack(Material.GOLDEN_APPLE), "Golden Apple", material.getName(), material.getFirstCost(), "Fantastic regen to get you out of a tough spot");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.GOLDEN_APPLE), "Golden Apple", material.getName(), firstCost, "Fantastic regen to get you out of a tough spot");
             case SILVERFISH_SNOWBALL:
-                return Util.addNamesShopStyle(new ItemStack(Material.SNOWBALL), "Silverfish Snowball", material.getName(), material.getFirstCost(), "A way to swarm your opponents with annoying critters");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.SNOWBALL), "Silverfish Snowball", material.getName(), firstCost, "A way to swarm your opponents with annoying critters");
             case IRON_GOLEM_SPAWN_EGG:
-                return Util.addNamesShopStyle(new ItemStack(Material.IRON_GOLEM_SPAWN_EGG), "Iron Golem", material.getName(), material.getFirstCost(), "Spawns a literal iron golem to defend you,","it does not get much better than that");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.IRON_GOLEM_SPAWN_EGG), "Iron Golem", material.getName(), firstCost, "Spawns a literal iron golem to defend you,","it does not get much better than that");
             case FIREBALL:
-                return Util.addNamesShopStyle(new ItemStack(Material.FIRE_CHARGE), "Fireball", material.getName(), material.getFirstCost(), "Shoots a ball which creates", "a large explosion on impact");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.FIRE_CHARGE), "Fireball", material.getName(), firstCost, "Shoots a ball which creates", "a large explosion on impact");
             case TNT:
-                return Util.addNamesShopStyle(new ItemStack(Material.TNT), "TNT", material.getName(), material.getFirstCost(), "Spawns an activated tnt on place");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.TNT), "TNT", material.getName(), firstCost, "Spawns an activated tnt on place");
             case ENDER_PEARL:
-                return Util.addNamesShopStyle(new ItemStack(Material.ENDER_PEARL), "Ender Pearl", material.getName(), material.getFirstCost(), "It's an ender pearl, it lets you","teleport where you throw it");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.ENDER_PEARL), "Ender Pearl", material.getName(), firstCost, "It's an ender pearl, it lets you","teleport where you throw it");
             case WATER_BUCKET:
-                return Util.addNamesShopStyle(new ItemStack(Material.WATER_BUCKET), "Water Bucket", material.getName(), material.getFirstCost(), "Lets you add water somewhere");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.WATER_BUCKET), "Water Bucket", material.getName(), firstCost, "Lets you add water somewhere");
             case BRIDGE_EGG:
-                return Util.addNamesShopStyle(new ItemStack(Material.EGG), "Bridge Egg", material.getName(), material.getFirstCost(), "Creates a bridge where you throw it");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.EGG), "Bridge Egg", material.getName(), firstCost, "Creates a bridge where you throw it");
             case MAGIC_MILK:
-                return Util.addNamesShopStyle(new ItemStack(Material.MILK_BUCKET), "Magic Milk", material.getName(), material.getFirstCost(), "Lets you avoid enemy traps for 60 seconds");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.MILK_BUCKET), "Magic Milk", material.getName(), firstCost, "Lets you avoid enemy traps for 60 seconds");
             case SPONGE:
-                return Util.addNamesShopStyle(new ItemStack(Material.SPONGE, 4), "Sponges", material.getName(), material.getFirstCost(), "Soaks up water");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.SPONGE, 4), "Sponges", material.getName(), firstCost, "Soaks up water");
             case POP_OUT_BASE:
-                return Util.addNamesShopStyle(new ItemStack(Material.CHEST), "Pop Out Base", material.getName(), material.getFirstCost(), "Creates a mini-base where you place it");
+                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.CHEST), "Pop Out Base", material.getName(), firstCost, "Creates a mini-base where you place it");
             default: throw new UnsupportedOperationException("Not a bedwars item");
         }
     }
 
-    public boolean upgradePick() {
-        return setPickLevel(getPickaxeToShow());
+    public void upgradePick() {
+        setPickLevel(getPickaxeToShow());
     }
 
     public Optional<Material> getPickaxeLevel() {
@@ -368,6 +407,14 @@ public class PlayerAddons {
 
     public Optional<Material> getAxeLevel() {
         return m_axeLevel;
+    }
+
+    public boolean isAxeUpgradeAble() {
+        return m_axeLevel.map(material -> !material.equals(Material.NETHERITE_AXE)).orElse(true);
+    }
+
+    public boolean isPickaxeUpgradeAble() {
+        return m_pickaxeLevel.map(material -> !material.equals(Material.NETHERITE_PICKAXE)).orElse(true);
     }
 
     public void upgradeProt() {
@@ -380,18 +427,13 @@ public class PlayerAddons {
         setFullArmorSet();
     }
 
-    private boolean setPickLevel(Material material) {
+    private void setPickLevel(Material material) {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) throw new UnsupportedOperationException("No player");
-        if (m_pickaxeLevel.isPresent()) {
-            if (m_pickaxeLevel.get() == material) return false;
-            Util.clear(player.getInventory(), m_pickaxeLevel.get());
-        }
         m_pickaxeLevel = Optional.of(material);
         menuOne(m_shop.get(0));
         menuFive(m_shop.get(4));
         player.updateInventory();
-        return true;
     }
 
     public void onRespawn() {
@@ -399,6 +441,8 @@ public class PlayerAddons {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
         m_onRespawn.get().cancel();
+        player.sendMessage(ChatColor.YELLOW + "You have respawned!");
+        player.sendTitle(ChatColor.GREEN + "RESPAWNED!","",10,20*1,10);
         m_onRespawn = Optional.empty();
         player.setGameMode(GameMode.SURVIVAL);
         player.setHealth(20);
@@ -432,6 +476,8 @@ public class PlayerAddons {
     public void onDeath() {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
+        ArmorPackets.stopLoop(m_player);
+        giveKillerItems(player);
         m_playerAlive = false;
         player.getInventory().clear();
         Util.clearEffects(player);
@@ -450,6 +496,29 @@ public class PlayerAddons {
         m_onRespawn.get().runTaskLater(m_coolearth, 20*5);
     }
 
+    private void giveKillerItems(Player player) {
+        Player killer = player.getKiller();
+        if (killer == null) return;
+        if (killer.equals(player)) return;
+        for (Materials material : Materials.values()) {
+            if (material.equals(Materials.UNKNOWN)) continue;
+            int amount = 0;
+            for (ItemStack item : player.getInventory().all(material.getMaterial()).values()) {
+                amount += item.getAmount();
+                if (InventoryUtil.checkIfReallyFull(killer.getInventory(), item)) {
+                    Util.spawnItem(killer.getLocation(), item);
+                } else {
+                    killer.getInventory().addItem(item);
+                }
+            }
+            if (amount == 0) continue;
+            if (amount == 1 || !material.getPlural()) {
+                killer.sendMessage(ChatColor.GREEN + "+ " + material.getColor() + amount + " " + material.getName());
+            } else {
+                killer.sendMessage(ChatColor.GREEN + "+ " + material.getColor() + amount + " " + material.getName() + "s");
+            }
+        }
+    }
     private void setFullArmorSet() {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
@@ -460,22 +529,17 @@ public class PlayerAddons {
 
 
 
-    private boolean setAxeLevel(Material material) {
+    private void setAxeLevel(Material material) {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) throw new UnsupportedOperationException("No player");
-        if (m_axeLevel.isPresent()) {
-            if (m_axeLevel.get() == material) return false;
-            Util.clear(player.getInventory(), m_axeLevel.get());
-        }
         m_axeLevel = Optional.of(material);
         menuOne(m_shop.get(0));
         menuFive(m_shop.get(4));
         player.updateInventory();
-        return true;
     }
 
-    public boolean upgradeAxe() {
-        return setAxeLevel(getAxeToShow());
+    public void upgradeAxe() {
+        setAxeLevel(getAxeToShow());
     }
 
     private Material getAxeToShow() {
@@ -556,8 +620,10 @@ public class PlayerAddons {
         }
     }
 
-    private void upgradeMenu(Inventory inventory) {
-
+    public void update() {
+        for (int i = 0; i < 9; i++) {
+            createShop(m_shop.get(i),i);
+        }
     }
 
     private void menuOne(Inventory inventory) {
@@ -815,7 +881,7 @@ public class PlayerAddons {
     private void addToShop(Inventory inventory, int startpoint, Items... items) {
         ItemStack[] itemStacks = new ItemStack[items.length];
         for (int i = 0; i < (items.length); i++) {
-            itemStacks[i] = getItem(items[i]);
+            itemStacks[i] = getDisplayItem(items[i]);
         }
         Util.addToShop(inventory, startpoint, itemStacks);
     }

@@ -1,6 +1,7 @@
 package me.coolearth.coolearth.listener;
 
 import com.comphenix.protocol.wrappers.Pair;
+import me.coolearth.coolearth.Util.Materials;
 import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.Constants;
@@ -9,7 +10,6 @@ import me.coolearth.coolearth.math.MathUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -38,6 +38,9 @@ public class InventoryManager implements Listener {
             player.updateInventory();
         } else if (checkIfSpecialSword(type) && test(player, item)) {
             player.getInventory().addItem(getEnchanted(item));
+        } else if (!Materials.get(item.getType()).equals(Materials.UNKNOWN)) {
+            if (player.isOnGround() || player.getKiller() == null) return;
+            event.setCancelled(true);
         }
     }
 

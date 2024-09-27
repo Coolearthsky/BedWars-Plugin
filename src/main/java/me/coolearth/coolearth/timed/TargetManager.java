@@ -2,6 +2,7 @@ package me.coolearth.coolearth.timed;
 
 import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
+import org.bukkit.GameMode;
 import org.bukkit.entity.*;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
@@ -13,13 +14,16 @@ import java.util.Map;
 
 public class TargetManager {
     private final JavaPlugin m_coolearth;
+    private final MobManager m_mobManager;
     private final Map<Mob, BukkitRunnable> m_runnableMap = new HashMap<>();
 
-    public TargetManager(JavaPlugin coolearth){
+    public TargetManager(JavaPlugin coolearth, MobManager mobManager){
         m_coolearth = coolearth;
+        m_mobManager = mobManager;
     }
 
-    public void addLivingEntity(Mob entity, Player player) {
+    public void addLivingEntity(Mob entity, Player player, long livingTime) {
+        m_mobManager.placeMob(entity, livingTime);
         TeamUtil team = Util.getTeam(player);
         if (team == TeamUtil.NONE) return;
         entity.addScoreboardTag(team.getName());
@@ -34,6 +38,11 @@ public class TargetManager {
                 for (Entity badEntity : nearbyEntities) {
                     if (!(badEntity instanceof LivingEntity)) {
                         continue;
+                    }
+                    if (badEntity instanceof Player) {
+                        if (!((Player) badEntity).getGameMode().equals(GameMode.SURVIVAL)) {
+                            continue;
+                        }
                     }
                     TeamUtil opponentTeam = Util.getTeamEntity(badEntity);
                     if (opponentTeam == m_team || opponentTeam == TeamUtil.NONE) continue;

@@ -107,6 +107,10 @@ public class BlockManager {
     }
 
     private boolean checkNoPlaceZones(Location location) {
+        Pair<Location,Location> placeAble = Constants.getPlaceZone();
+        if (!MathUtil.isBetweenTwoLocations(location, placeAble.getFirst(),placeAble.getSecond())) {
+            return false;
+        }
         for (Pair<Location,Location> loc : Constants.getNoPlaceZones()) {
             if (MathUtil.isBetweenTwoLocations(location, loc.getFirst(), loc.getSecond())) {
                 return false;
