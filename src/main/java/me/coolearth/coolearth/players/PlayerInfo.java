@@ -12,33 +12,34 @@ import java.util.Map;
 import java.util.UUID;
 
 public class PlayerInfo {
-    private final Map<UUID, PlayerAddons> m_players = new HashMap<>();
-    private final Map<TeamUtil, TeamInfo> m_teams = new HashMap<>();
-    private final JavaPlugin m_coolearth;
+    private static final Map<UUID, PlayerAddons> m_players = new HashMap<>();
+    private static final Map<TeamUtil, TeamInfo> m_teams = new HashMap<>();
+    private static JavaPlugin m_coolearth;
 
-    public PlayerInfo(JavaPlugin coolearth) {
+    public static void register(JavaPlugin coolearth) {
         m_coolearth = coolearth;
     }
 
-    public TeamInfo getTeamInfo(TeamUtil team) {
+    public static TeamInfo getTeamInfo(TeamUtil team) {
         return m_teams.get(team);
     }
 
-    public void stopLoops() {
+    public static void stopLoops() {
         for (TeamInfo based : m_teams.values()) {
             based.stopAllLoops();
         }
         for (PlayerAddons based : m_players.values()) {
             based.stopAllLoops();
         }
+        stopAllPlayers();
     }
 
-    public void stopAllPlayers() {
+    private static void stopAllPlayers() {
         m_teams.clear();
         m_players.clear();
     }
 
-    public void startPlayers() {
+    public static void startPlayers() {
         Map<TeamUtil, ArrayList<PlayerAddons>> plat = new HashMap<>();
         for (TeamUtil team : TeamUtil.values()) {
             if (team == TeamUtil.NONE) continue;
@@ -62,51 +63,25 @@ public class PlayerInfo {
         }
     }
 
-    public void resetPlayers() {
-        stopLoops();
-        Map<TeamUtil, ArrayList<PlayerAddons>> plat = new HashMap<>();
-        for (TeamUtil team : TeamUtil.values()) {
-            if (team == TeamUtil.NONE) continue;
-            plat.put(team, new ArrayList<>());
-        }
-        for (UUID playerUUID : m_players.keySet()) {
-            Player player = Bukkit.getPlayer(playerUUID);
-            if (player == null) continue;
-            TeamUtil team = Util.getTeam(player);
-            PlayerAddons value = new PlayerAddons(m_coolearth, team, playerUUID);
-            m_players.replace(playerUUID, value);
-            if (team == TeamUtil.NONE) continue;
-            plat.get(team).add(value);
-        }
-        for (TeamUtil team : TeamUtil.values()) {
-            if (team == TeamUtil.NONE) continue;
-            Map<UUID, PlayerAddons> tempMap = new HashMap<>();
-            for (PlayerAddons player : plat.get(team)) {
-                tempMap.put(player.getPlayer(), player);
-            }
-            m_teams.replace(team, new TeamInfo(team, m_coolearth, tempMap, () -> m_players));
-        }
-    }
-
-    public void startTeamGenerators() {
+    public static void startTeamGenerators() {
         for (TeamInfo team : m_teams.values()) {
             team.startSpawning();
         }
     }
 
-    public PlayerAddons getPlayersInfo(Player player) {
+    public static PlayerAddons getPlayersInfo(Player player) {
         return m_players.get(player.getUniqueId());
     }
 
-    public Map<TeamUtil, TeamInfo> getTeams() {
+    public static Map<TeamUtil, TeamInfo> getTeams() {
         return m_teams;
     }
 
-    public Map<UUID, PlayerAddons> getPlayers() {
+    public static Map<UUID, PlayerAddons> getPlayers() {
         return m_players;
     }
 
-    public void updateTeams(Player player, TeamUtil team) {
+    public static void updateTeams(Player player, TeamUtil team) {
         UUID playerUUID = player.getUniqueId();
         PlayerAddons playerAddons = m_players.get(playerUUID);
         if (playerAddons == null) return;

@@ -33,16 +33,15 @@ import java.util.Set;
 import java.util.UUID;
 
 public class ShopManager {
-    private final PlayerInfo m_playerInfo;
     private final JavaPlugin m_coolearth;
-    public ShopManager(PlayerInfo playerInfo, JavaPlugin coolearth) {
-        m_playerInfo = playerInfo;
+    public ShopManager(JavaPlugin coolearth) {
         m_coolearth = coolearth;
     }
 
     public void onInventoryPickup(Player player) {
         if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
-        PlayerAddons playersInfo = m_playerInfo.getPlayersInfo(player);
+        PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
+        if (playersInfo == null) return;
         if (playersInfo.inMenu()) {
             BukkitRunnable runnable = new BukkitRunnable() {
                 @Override
@@ -56,7 +55,7 @@ public class ShopManager {
             BukkitRunnable runnable = new BukkitRunnable() {
                 @Override
                 public void run() {
-                    m_playerInfo.getTeamInfo(playersInfo.getTeam()).createUpgradesForPlayer(player.getUniqueId());
+                    PlayerInfo.getTeamInfo(playersInfo.getTeam()).createUpgradesForPlayer(player.getUniqueId());
                 }
             };
             runnable.runTaskLater(m_coolearth, 0);
@@ -65,14 +64,14 @@ public class ShopManager {
 
     public void onShopClick(Set<String> tags, Player player) {
         if (tags.contains("shop")) {
-            PlayerAddons addons = m_playerInfo.getPlayersInfo(player);
+            PlayerAddons addons = PlayerInfo.getPlayersInfo(player);
             if (addons == null) {
                 return;
             }
             addons.update();
             addons.openShopMenu(0);
         } else if (tags.contains("upgrades")) {
-            TeamInfo teamInfo = m_playerInfo.getTeamInfo(Util.getTeam(player));
+            TeamInfo teamInfo = PlayerInfo.getTeamInfo(Util.getTeam(player));
             if (teamInfo == null) {
                 return;
             }
@@ -84,16 +83,16 @@ public class ShopManager {
     }
 
     public void onShopClose(Player player) {
-        PlayerAddons teamRelativeAddons = m_playerInfo.getPlayersInfo(player);
+        PlayerAddons teamRelativeAddons = PlayerInfo.getPlayersInfo(player);
         if (teamRelativeAddons == null) return;
         teamRelativeAddons.closeInventory();
     }
 
     public void onShopItemClick(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
-        PlayerAddons playersInfo = m_playerInfo.getPlayersInfo(player);
+        PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
         if (playersInfo == null) return;
-        TeamInfo teamInfo = m_playerInfo.getTeamInfo(playersInfo.getTeam());
+        TeamInfo teamInfo = PlayerInfo.getTeamInfo(playersInfo.getTeam());
         if (playersInfo.inMenu()) {
             if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
                 if (event.getClickedInventory() != player.getInventory()) {
@@ -148,7 +147,7 @@ public class ShopManager {
         Traps trap = Traps.get(name);
         TeamUtil team = Util.getTeam(player);
         Upgrades upgrades = Upgrades.get(name);
-        TeamInfo teamBased = m_playerInfo.getTeamInfo(team);
+        TeamInfo teamBased = PlayerInfo.getTeamInfo(team);
         if (teamBased == null) throw new UnsupportedOperationException("No team info");
         if (trap != Traps.UNKNOWN) {
             if (teamBased.canGetTrap()) {
@@ -179,7 +178,7 @@ public class ShopManager {
     }
 
     public void shopClickHandling(ItemStack currentItem, int slot, Player player) {
-        PlayerAddons e = m_playerInfo.getPlayersInfo(player);
+        PlayerAddons e = PlayerInfo.getPlayersInfo(player);
         if (e == null) return;
         if (MathUtil.isBetweenTwoDoubles(slot,0,8)) {
             e.openShopMenu(slot);
@@ -192,7 +191,7 @@ public class ShopManager {
             if (isArmor(items)) {
                 if (!e.canSetArmor(items)) return;
             }
-            PlayerAddons teamRelativeAddons = m_playerInfo.getPlayersInfo(player);
+            PlayerAddons teamRelativeAddons = PlayerInfo.getPlayersInfo(player);
             ItemStack cost;
             if (items == Items.AXE_UPGRADE) {
                 if (teamRelativeAddons.getAxeLevel().isPresent()) {
@@ -277,14 +276,14 @@ public class ShopManager {
         ItemMeta newItemMeta = itemStack.getItemMeta();
         if (isArmor(items)) {
             takeMoney(player, item, cost, false);
-            m_playerInfo.getPlayersInfo(player).setLowerArmor(items);
+            PlayerInfo.getPlayersInfo(player).setLowerArmor(items);
             return;
         }
         else if (isSword(items)) {
             Util.clearOfWoodSwords(player.getInventory());
         }
         else if (items == Items.AXE_UPGRADE) {
-            PlayerAddons playersInfo = m_playerInfo.getPlayersInfo(player);
+            PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
             if (!playersInfo.isAxeUpgradeAble()) return;
             if (!playersInfo.getAxeLevel().isPresent() && InventoryUtil.checkIfReallyFull(player.getInventory(),cost,null)) {
                 inventoryFull(player);
@@ -314,10 +313,10 @@ public class ShopManager {
                 return;
             }
             takeMoney(player, item, cost, false);
-            m_playerInfo.getPlayersInfo(player).gotShears();
+            PlayerInfo.getPlayersInfo(player).gotShears();
         }
         else if (items == Items.PICKAXE_UPGRADE) {
-            PlayerAddons playersInfo = m_playerInfo.getPlayersInfo(player);
+            PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
             if (!playersInfo.isPickaxeUpgradeAble()) return;
             if (!playersInfo.getPickaxeLevel().isPresent() && InventoryUtil.checkIfReallyFull(player.getInventory(),cost,null)) {
                 inventoryFull(player);
@@ -350,7 +349,7 @@ public class ShopManager {
             itemStack.setItemMeta(newItemMeta);
             player.getInventory().addItem(itemStack);
             takeMoney(player, item, cost, false);
-            m_playerInfo.getPlayersInfo(player).update();
+            PlayerInfo.getPlayersInfo(player).update();
             return;
         }
         if (itemMeta.isUnbreakable()) {
@@ -370,14 +369,14 @@ public class ShopManager {
         takeMoney(player, item, cost, false);
         itemStack.setItemMeta(newItemMeta);
         player.getInventory().addItem(itemStack);
-        m_playerInfo.getPlayersInfo(player).update();
+        PlayerInfo.getPlayersInfo(player).update();
     }
 
     private void purchase(Player player, ItemStack item, boolean upgrade) {
         player.sendMessage(ChatColor.GREEN + "You purchased " + ChatColor.GOLD + item.getItemMeta().getDisplayName().substring(2));
         player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 1, 2);
         if (!upgrade) return;
-        for (UUID uuid : m_playerInfo.getTeamInfo(Util.getTeam(player)).getPeopleOnTeam().keySet()) {
+        for (UUID uuid : PlayerInfo.getTeamInfo(Util.getTeam(player)).getPeopleOnTeam().keySet()) {
             Player player2 = Bukkit.getPlayer(uuid);
             if (player2 == null) continue;
             if (player.equals(player2)) continue;

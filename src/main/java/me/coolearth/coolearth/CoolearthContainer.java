@@ -5,6 +5,7 @@ import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.commands.*;
 import me.coolearth.coolearth.damage.DeathManager;
 import me.coolearth.coolearth.listener.*;
+import me.coolearth.coolearth.players.PlayerAddons;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.PlayerJoinLeaveManager;
 import me.coolearth.coolearth.scoreboard.Board;
@@ -39,7 +40,6 @@ public class CoolearthContainer {
     private final Board board;
 
     //Managers
-    private final PlayerInfo playerInfo;
     private final MobManager mobManager;
     private final ShopManager shopManager;
     private final BlockManager blockManager;
@@ -56,11 +56,10 @@ public class CoolearthContainer {
         //Block manager, manages certain areas and where players can place blocks
         blockManager = new BlockManager();
 
-        //Player info
-        playerInfo = new PlayerInfo(coolearth);
+        PlayerInfo.register(coolearth);
 
         //Scoreboard
-        board = new Board(playerInfo);
+        board = new Board();
 
         //Timed events
         generators = new Generators(coolearth, board);
@@ -73,21 +72,21 @@ public class CoolearthContainer {
 
 
         //Start and stopgame controllers
-        startGame = new StartGame(generators, playerInfo, board, voidCheck);
-        stopGame = new StopGame(playerInfo, board, blockManager, generators, eggManager, targetManager, voidCheck);
+        startGame = new StartGame(generators, board, voidCheck);
+        stopGame = new StopGame(board, blockManager, generators, eggManager, targetManager, voidCheck);
 
         //Death manager
-        shopManager = new ShopManager(playerInfo, coolearth);
-        deathManager = new DeathManager(playerInfo, board, stopGame, coolearth);
-        playerManager = new PlayerJoinLeaveManager(playerInfo, generators, coolearth);
+        shopManager = new ShopManager( coolearth);
+        deathManager = new DeathManager(board, stopGame, coolearth);
+        playerManager = new PlayerJoinLeaveManager( generators, coolearth);
 
         //Listeners
-        blockListener = new BlockListener(playerInfo, blockManager, spongeManager, board);
+        blockListener = new BlockListener( blockManager, spongeManager, board);
         inventoryListener = new InventoryManager();
         deathListener = new DeathListener(deathManager);
         playerListener = new PlayerListener(playerManager);
         shopListener = new ShopListener(shopManager);
-        foodListener = new FoodListener(playerInfo);
+        foodListener = new FoodListener();
         projectileListener = new ProjectileListener(eggManager, blockManager);
         mobListener = new MobListener(targetManager);
 
@@ -107,8 +106,8 @@ public class CoolearthContainer {
         Stop stop = new Stop(stopGame);
 
         //Team based commands
-        Upgrade upgrade = new Upgrade(playerInfo);
-        Teams teams = new Teams(playerInfo, board);
+        Upgrade upgrade = new Upgrade();
+        Teams teams = new Teams(board);
 
 
 

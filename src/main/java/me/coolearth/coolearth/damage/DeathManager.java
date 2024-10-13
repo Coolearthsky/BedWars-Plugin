@@ -1,5 +1,6 @@
 package me.coolearth.coolearth.damage;
 
+import me.coolearth.coolearth.PacketManager.ArmorPackets;
 import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.Constants;
@@ -22,12 +23,10 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public class DeathManager {
 
-    private final PlayerInfo m_playerInfo;
     private final Board m_board;
     private final StopGame m_stopGame;
     private final JavaPlugin m_coolearth;
-    public DeathManager(PlayerInfo playerInfo, Board board, StopGame stopGame, JavaPlugin coolearth) {
-        m_playerInfo = playerInfo;
+    public DeathManager(Board board, StopGame stopGame, JavaPlugin coolearth) {
         m_board = board;
         m_stopGame = stopGame;
         m_coolearth = coolearth;
@@ -35,6 +34,7 @@ public class DeathManager {
 
     public void onDamage(EntityDamageEvent event) {
         if (!event.getEntityType().equals(EntityType.PLAYER)) return;
+        ArmorPackets.stopLoop((Player) event.getEntity());
         DamageType damageType = event.getDamageSource().getDamageType();
         if (damageType.equals(DamageType.PLAYER_EXPLOSION)) {
             event.setDamage(0);
@@ -46,10 +46,14 @@ public class DeathManager {
 
     public void onPlayerDeath(Player player) {
         if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
-        PlayerAddons playersInfo = m_playerInfo.getPlayersInfo(player);
+        PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
         if (playersInfo == null) return;
         playersInfo.onDeath();
         if (!playersInfo.isAlive()) {
+            Player killer = player.getKiller();
+            if (killer != null && !player.equals(killer)) {
+                m_board.updatePlayersScoreboardFinalKills(killer);
+            }
             TeamUtil team1 = playersInfo.getTeam();
             Util.broadcastMessage(team1.getChatColor() + player.getName() + ChatColor.GRAY + " died " + "§b" + ChatColor.BOLD + "FINAL KILL!");
             player.sendMessage(ChatColor.RED + "You have been eliminated!");
@@ -61,16 +65,15 @@ public class DeathManager {
                 Util.spawnItem(teamGeneratorLocation, item);
             }
             m_board.updateSpecificTeamsScoreboards(team1);
-            if (!m_playerInfo.getTeamInfo(team1).isAnyoneOnTeamAlive()) {
+            if (!PlayerInfo.getTeamInfo(team1).isAnyoneOnTeamAlive()) {
                 Util.broadcastMessage("\n" + ChatColor.BOLD + "TEAM ELIMINATED > " + team1.getChatColor() + team1.getName() + " Team " + ChatColor.RED + "has been eliminated!"+ "\n");
                 Util.broadcastMessage("");
             }
             TeamUtil aliveTeam = null;
-            for (TeamInfo team : m_playerInfo.getTeams().values()) {
+            for (TeamInfo team : PlayerInfo.getTeams().values()) {
                 if (team.isAnyoneOnTeamAlive()) {
                     if (aliveTeam != null) {
                         if (sendmessage) {
-                            Player killer = player.getKiller();
                             if (killer != null && !player.equals(killer)) killer.sendMessage(ChatColor.GREEN + "Contents of " + player.getName() + "'s Ender Chest have been dropped into their fountain.");
                         }
                         return;
@@ -85,6 +88,10 @@ public class DeathManager {
             }
             m_stopGame.stop();
         } else {
+            Player killer = player.getKiller();
+            if (killer != null && !player.equals(killer)) {
+                m_board.updatePlayersScoreboardKills(killer);
+            }
             int totalTime = 5;
             deathMessage(player, totalTime);
             for (int i = 1; i < totalTime; i++) {

@@ -35,6 +35,7 @@ public class ArmorPackets {
             Bukkit.getLogger().warning("NO JAVAPLUGIN");
             return;
         }
+
         m_manager.addPacketListener(new PacketAdapter(m_coolearth, PacketType.Play.Server.ENTITY_EQUIPMENT) {
             @Override
             public void onPacketSending(PacketEvent event) {
@@ -42,7 +43,7 @@ public class ArmorPackets {
                 Entity read = packet.getEntityModifier(event).read(0);
                 if (!(read instanceof Player)) return;
                 Player player = (Player) read;
-                if (checkInvalid(player, event.getPlayer())) return;
+                if (!m_runnable.containsKey(player.getUniqueId())) return;
                 setInvisArmor(packet);
             }
         });
@@ -66,37 +67,41 @@ public class ArmorPackets {
             }
             m_manager.sendServerPacket(p, packetContainer);
         }
-        stopLoop(player.getUniqueId());
+        if (m_runnable.containsKey(player.getUniqueId())) {
+            BukkitRunnable runnable = m_runnable.get(player.getUniqueId());
+            runnable.cancel();
+            m_runnable.remove(player.getUniqueId());
+        }
         BukkitRunnable runnable = new BukkitRunnable() {
             @Override
             public void run() {
-                PacketContainer packetContainer  = m_manager.createPacket(PacketType.Play.Server.ENTITY_EQUIPMENT);
-                packetContainer.getIntegers().write(0, player.getEntityId());
-                List<Pair<EnumWrappers.ItemSlot, ItemStack>> value = new ArrayList<>();
-                value.add(new Pair<>(EnumWrappers.ItemSlot.MAINHAND, player.getInventory().getItemInMainHand()));
-                value.add(new Pair<>(EnumWrappers.ItemSlot.OFFHAND, player.getInventory().getItemInOffHand()));
-                value.add(new Pair<>(EnumWrappers.ItemSlot.FEET, player.getInventory().getBoots()));
-                value.add(new Pair<>(EnumWrappers.ItemSlot.LEGS, player.getInventory().getLeggings()));
-                value.add(new Pair<>(EnumWrappers.ItemSlot.CHEST, player.getInventory().getChestplate()));
-                value.add(new Pair<>(EnumWrappers.ItemSlot.HEAD, player.getInventory().getHelmet()));
-                packetContainer.getSlotStackPairLists().write(0,value);
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (Util.getTeam(p).equals(Util.getTeam(player)) || !p.getScoreboardTags().contains("player")) {
-                        continue;
-                    }
-                    m_manager.sendServerPacket(p, packetContainer);
-                }
+                stopLoop(player);
             }
         };
         runnable.runTaskLater(m_coolearth, 20*30+1);
         m_runnable.put(player.getUniqueId(), runnable);
     }
 
-    public static void stopLoop(UUID player) {
-        BukkitRunnable runnable = m_runnable.get(player);
-        if (runnable == null) return;
-        runnable.cancel();
-        m_runnable.remove(player);
+    public static void stopLoop(Player player) {
+        if (!m_runnable.containsKey(player.getUniqueId())) return;
+        PacketContainer packetContainer = m_manager.createPacket(PacketType.Play.Server.ENTITY_EQUIPMENT);
+        packetContainer.getIntegers().write(0, player.getEntityId());
+        List<Pair<EnumWrappers.ItemSlot, ItemStack>> value = new ArrayList<>();
+        value.add(new Pair<>(EnumWrappers.ItemSlot.MAINHAND, player.getInventory().getItemInMainHand()));
+        value.add(new Pair<>(EnumWrappers.ItemSlot.OFFHAND, player.getInventory().getItemInOffHand()));
+        value.add(new Pair<>(EnumWrappers.ItemSlot.FEET, player.getInventory().getBoots()));
+        value.add(new Pair<>(EnumWrappers.ItemSlot.LEGS, player.getInventory().getLeggings()));
+        value.add(new Pair<>(EnumWrappers.ItemSlot.CHEST, player.getInventory().getChestplate()));
+        value.add(new Pair<>(EnumWrappers.ItemSlot.HEAD, player.getInventory().getHelmet()));
+        packetContainer.getSlotStackPairLists().write(0, value);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (Util.getTeam(p).equals(Util.getTeam(player)) || !p.getScoreboardTags().contains("player")) {
+                continue;
+            }
+            m_manager.sendServerPacket(p, packetContainer);
+        }
+        m_runnable.get(player.getUniqueId()).cancel();
+        m_runnable.remove(player.getUniqueId());
     }
 
     private static void setInvisArmor(PacketContainer fakeEquipmentPacket) {
@@ -113,9 +118,5 @@ public class ArmorPackets {
             value.add(new Pair<>(EnumWrappers.ItemSlot.HEAD, new ItemStack(Material.AIR)));
         }
         fakeEquipmentPacket.getSlotStackPairLists().write(0, value);
-    }
-
-    private static boolean checkInvalid(Player sourcePlayer, Player targetPlayer) {
-        return !sourcePlayer.hasPotionEffect(PotionEffectType.INVISIBILITY) || !sourcePlayer.getScoreboardTags().contains("player") || Util.getTeam(targetPlayer) == Util.getTeam(sourcePlayer);
     }
 }
