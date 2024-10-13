@@ -16,12 +16,10 @@ import org.bukkit.potion.PotionEffectType;
 import java.util.UUID;
 
 public class PlayerJoinLeaveManager {
-    private final PlayerInfo m_playerInfo;
     private final JavaPlugin m_coolearth;
     private final Generators m_generators;
 
-    public PlayerJoinLeaveManager(PlayerInfo playerInfo, Generators generators, JavaPlugin coolearth) {
-        m_playerInfo = playerInfo;
+    public PlayerJoinLeaveManager(Generators generators, JavaPlugin coolearth) {
         m_coolearth = coolearth;
         m_generators = generators;
     }
@@ -38,31 +36,32 @@ public class PlayerJoinLeaveManager {
             player1.teleport(Constants.getSpawn());
             return;
         }
-        m_generators.updateSafe(player1);
-        if (m_playerInfo.getPlayers().containsKey(player)) {
-            if (m_playerInfo.getPlayersInfo(player1).getAlive() && player1.getGameMode().equals(GameMode.SPECTATOR)) {
-                m_playerInfo.getPlayersInfo(player1).onRespawn();
+        if (PlayerInfo.getPlayers().containsKey(player)) {
+            m_generators.updateSafe(player1);
+            if (PlayerInfo.getPlayersInfo(player1).getAlive() && player1.getGameMode().equals(GameMode.SPECTATOR)) {
+                PlayerInfo.getPlayersInfo(player1).onRespawn();
             }
             return;
         };
-        TeamUtil team = Util.getMostEmptyAliveTeam(m_playerInfo);
+        TeamUtil team = Util.getMostEmptyAliveTeam();
         if (team == null) {
             player1.setGameMode(GameMode.SPECTATOR);
             player1.teleport(Constants.getSpawn());
             return;
         }
         PlayerAddons value = new PlayerAddons(m_coolearth, team, player);
-        m_playerInfo.getPlayers().put(player, value);
-        TeamInfo teamInfo = m_playerInfo.getTeamInfo(team);
+        PlayerInfo.getPlayers().put(player, value);
+        TeamInfo teamInfo = PlayerInfo.getTeamInfo(team);
         teamInfo.createUpgradesForPlayer(player);
         teamInfo.getPeopleOnTeam().put(player, value);
         Util.removeTeams(player1);
         player1.addScoreboardTag(team.getName());
         Util.setupPlayerFromStart(player1);
+        m_generators.updateSafe(player1);
     }
 
     public void onPlayerQuit(Player player) {
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
-        ArmorPackets.stopLoop(player.getUniqueId());
+        ArmorPackets.stopLoop(player);
     }
 }

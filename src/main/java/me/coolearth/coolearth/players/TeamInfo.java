@@ -72,6 +72,10 @@ public class TeamInfo {
         return i;
     }
 
+    public boolean hasSharp() {
+        return m_sharpness;
+    }
+
     public boolean isAnyoneOnTeamAlive() {
         for (PlayerAddons playerAddons : m_playersOnTeam.values()) {
             if (playerAddons.isAlive()) {

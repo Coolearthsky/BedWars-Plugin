@@ -496,9 +496,9 @@ public class Util {
         return item;
     }
 
-    public static TeamUtil getMostEmptyTeam(PlayerInfo playerInfo) {
+    public static TeamUtil getMostEmptyTeam() {
         int best = 999999;
-        for (TeamInfo team : playerInfo.getTeams().values()) {
+        for (TeamInfo team : PlayerInfo.getTeams().values()) {
             int numberOfPeopleOnTeam = team.numberOfPeopleOnTeam();
             if (numberOfPeopleOnTeam < best) {
                 best = numberOfPeopleOnTeam;
@@ -506,7 +506,7 @@ public class Util {
         }
         for (TeamUtil team : TeamUtil.values()) {
             if (team.equals(TeamUtil.NONE)) continue;
-            if (playerInfo.getTeamInfo(team).numberOfPeopleOnTeam() == best) {
+            if (PlayerInfo.getTeamInfo(team).numberOfPeopleOnTeam() == best) {
                 return team;
             }
         }
@@ -566,9 +566,9 @@ public class Util {
         }
     }
 
-    public static TeamUtil getMostEmptyAliveTeam(PlayerInfo playerInfo) {
+    public static TeamUtil getMostEmptyAliveTeam() {
         int best = 999999;
-        for (TeamInfo team : playerInfo.getTeams().values()) {
+        for (TeamInfo team : PlayerInfo.getTeams().values()) {
             if (!team.hasBed()) continue;
             int numberOfPeopleOnTeam = team.numberOfPeopleOnTeam();
             if (numberOfPeopleOnTeam < best) {
@@ -577,8 +577,8 @@ public class Util {
         }
         for (TeamUtil team : TeamUtil.values()) {
             if (team.equals(TeamUtil.NONE)) continue;
-            if (!playerInfo.getTeamInfo(team).hasBed()) continue;
-            if (playerInfo.getTeamInfo(team).numberOfPeopleOnTeam() == best) {
+            if (!PlayerInfo.getTeamInfo(team).hasBed()) continue;
+            if (PlayerInfo.getTeamInfo(team).numberOfPeopleOnTeam() == best) {
                 return team;
             }
         }

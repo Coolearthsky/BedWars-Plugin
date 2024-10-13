@@ -35,6 +35,9 @@ public class PlayerAddons {
     private boolean m_inUpgrades;
     private Material m_armor;
     private final UUID m_player;
+    private int kills;
+    private int finalKills;
+    private int bedsBroken;
     private Optional<BukkitRunnable> m_ignoreTrap;
     private Optional<BukkitRunnable> m_onRespawn;
 
@@ -44,6 +47,9 @@ public class PlayerAddons {
         m_player = player;
         m_playerAlive = true;
         m_protectionLevel = 0;
+        kills = 0;
+        bedsBroken = 0;
+        finalKills = 0;
         m_hasBed = true;
         m_alive = true;
         m_armor = Material.LEATHER_BOOTS;
@@ -68,6 +74,30 @@ public class PlayerAddons {
 
     public void leftUpgrades() {
         m_inUpgrades = false;
+    }
+
+    public int getKills() {
+        return kills;
+    }
+
+    public void killedSomeone() {
+        kills++;
+    }
+
+    public int getBedsBroken() {
+        return bedsBroken;
+    }
+
+    public void bedBrokeSomeone() {
+        bedsBroken++;
+    }
+
+    public int getFinalKills() {
+        return finalKills;
+    }
+
+    public void finalKilledSomeone() {
+        finalKills++;
     }
 
     public boolean inUpgrades() {
@@ -476,7 +506,7 @@ public class PlayerAddons {
     public void onDeath() {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
-        ArmorPackets.stopLoop(m_player);
+        ArmorPackets.stopLoop(player);
         giveKillerItems(player);
         m_playerAlive = false;
         player.getInventory().clear();

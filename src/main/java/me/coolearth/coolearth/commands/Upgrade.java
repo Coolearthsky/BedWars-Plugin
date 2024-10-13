@@ -10,19 +10,13 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
 public class Upgrade implements CommandExecutor {
-
-    private final PlayerInfo m_shopListener;
-    public Upgrade(PlayerInfo shopListener) {
-        m_shopListener = shopListener;
-    }
-
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!GlobalVariables.isGameActive()) {
             sender.sendMessage("The game must be active to activate this command");
             return false;
         }
-        TeamInfo teamInfo = m_shopListener.getTeamInfo(TeamUtil.get(Util.makeFirstCapital(args[0].toLowerCase())));
+        TeamInfo teamInfo = PlayerInfo.getTeamInfo(TeamUtil.get(Util.makeFirstCapital(args[0].toLowerCase())));
         if (teamInfo == null) {
             sender.sendMessage("Unknown argument");
             return false;

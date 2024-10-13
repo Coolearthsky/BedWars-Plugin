@@ -7,11 +7,15 @@ import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.math.MathUtil;
+import me.coolearth.coolearth.players.PlayerAddons;
+import me.coolearth.coolearth.players.PlayerInfo;
+import me.coolearth.coolearth.players.TeamInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -58,11 +62,12 @@ public class InventoryManager implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getCurrentItem() == null) return;
         Player player = (Player) event.getWhoClicked();
         if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
+        ItemStack currentItem = event.getCurrentItem();
+        if (currentItem == null) return;
         if (player.getInventory().firstEmpty() == -1) {
-            if (!checkIfContainsSwordIgnoringSlot(player, Optional.of(event.getSlot())) && (event.isRightClick() || event.isLeftClick()) && (event.getCurrentItem().getType() == Material.WOODEN_SWORD || event.getCurrentItem().getType() == Material.STONE_SWORD || event.getCurrentItem().getType() == Material.DIAMOND_SWORD || event.getCurrentItem().getType() == Material.IRON_SWORD || event.getCurrentItem().getType() == Material.NETHERITE_SWORD) && (event.getCursor().getType() != Material.STONE_SWORD && event.getCursor().getType() != Material.IRON_SWORD && event.getCursor().getType() != Material.NETHERITE_SWORD && event.getCursor().getType() != Material.DIAMOND_SWORD && !event.getCursor().getType().isAir())) {
+            if (!checkIfContainsSwordIgnoringSlot(player, Optional.of(event.getSlot())) && (event.isRightClick() || event.isLeftClick()) && (currentItem.getType() == Material.WOODEN_SWORD || currentItem.getType() == Material.STONE_SWORD || currentItem.getType() == Material.DIAMOND_SWORD || currentItem.getType() == Material.IRON_SWORD || currentItem.getType() == Material.NETHERITE_SWORD) && (event.getCursor().getType() != Material.STONE_SWORD && event.getCursor().getType() != Material.IRON_SWORD && event.getCursor().getType() != Material.NETHERITE_SWORD && event.getCursor().getType() != Material.DIAMOND_SWORD && !event.getCursor().getType().isAir())) {
                 event.setCancelled(true);
                 player.updateInventory();
             }
@@ -73,30 +78,45 @@ public class InventoryManager implements Listener {
             return;
         }
         if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
-            ItemStack item = event.getCurrentItem();
+            ItemStack item = currentItem;
             Material type = item.getType();
             if (getNotDroppable(type)) {
                 event.setCancelled(true);
                 player.updateInventory();
             }
         }
+        if (checkIfSpecialSword(currentItem.getType())) {
+            TeamUtil team1 = Util.getTeam(player);
+            if (team1.equals(TeamUtil.NONE)) return;
+            TeamInfo team = PlayerInfo.getTeamInfo(team1);
+            if (team == null) return;
+            if (team.hasSharp()) {
+                ItemStack withEnchantmentAndUnbreakable = Util.createWithEnchantmentAndUnbreakable(Enchantment.SHARPNESS, currentItem.getType());
+                currentItem = withEnchantmentAndUnbreakable;
+                event.setCurrentItem(withEnchantmentAndUnbreakable);
+            } else {
+                ItemStack withUnbreakable = Util.createWithUnbreakable(currentItem.getType());
+                currentItem = withUnbreakable;
+                event.setCurrentItem(withUnbreakable);
+            }
+        }
         if (event.getClick() == ClickType.SWAP_OFFHAND && event.getClickedInventory() != player.getInventory()) {
             PlayerInventory inventory = player.getInventory();
             Material type1 = inventory.getItemInOffHand().getType();
             boolean b = checkIfSpecialSword(type1);
-            boolean b2 = checkIfSpecialSword(event.getCurrentItem().getType());
+            boolean b2 = checkIfSpecialSword(currentItem.getType());
             if (getNotDroppable(inventory.getItemInOffHand().getType())) {
                 event.setCancelled(true);
                 player.updateInventory();
                 if (b2 && inventory.getItemInOffHand().getType() == Material.WOODEN_SWORD) {
-                    player.getInventory().setItemInOffHand(event.getCurrentItem());
+                    player.getInventory().setItemInOffHand(currentItem);
                     event.setCurrentItem(new ItemStack(Material.AIR));
                 }
                 return;
             } else if (b) {
                 if (!(b2 || checkIfContainsSwordIgnoringSlot(player, Optional.of(-1)))) {
-                    if (player.getInventory().firstEmpty() != -1 || event.getCurrentItem().getType().isAir()) {
-                        if (event.getCurrentItem().getType().isAir()) {
+                    if (player.getInventory().firstEmpty() != -1 || currentItem.getType().isAir()) {
+                        if (currentItem.getType().isAir()) {
                             event.setCancelled(true);
                             player.updateInventory();
                             event.setCurrentItem(inventory.getItemInOffHand());
@@ -116,15 +136,15 @@ public class InventoryManager implements Listener {
             }
         }
         if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY && !(event.getView().getTopInventory() instanceof CraftingInventory)) {
-            Material material = event.getCurrentItem().getType();
+            Material material = currentItem.getType();
             boolean leavingPlayer =event.getRawSlot() != event.getSlot();
             if (checkIfSpecialSword(material)) {
                 if (leavingPlayer) {
                     if (!checkIfContainsSwordIgnoringSlot(player, Optional.of(event.getSlot()))) {
                             event.setCancelled(true);
                             player.updateInventory();
-                            event.getInventory().addItem(event.getCurrentItem());
-                            player.getInventory().setItem(event.getSlot(),getEnchanted(event.getCurrentItem()));
+                            event.getInventory().addItem(currentItem);
+                            player.getInventory().setItem(event.getSlot(),getEnchanted(currentItem));
                     }
                 } else {
                     Util.clearOfWoodSwords(player.getInventory());
@@ -143,19 +163,19 @@ public class InventoryManager implements Listener {
                 } else {
                     type = item.getType();
                 }
-                Material type1 = event.getCurrentItem().getType();
+                Material type1 = currentItem.getType();
                 boolean b = checkIfSpecialSword(type1);
                 if (getNotDroppable(type)) {
                     event.setCancelled(true);
                     player.updateInventory();
                     if (b && type == Material.WOODEN_SWORD) {
-                        player.getInventory().setItem(event.getHotbarButton(), event.getCurrentItem());
+                        player.getInventory().setItem(event.getHotbarButton(), currentItem);
                         event.setCurrentItem(new ItemStack(Material.AIR));
                     }
                 } else if (item != null && checkIfSpecialSword(type)) {
                         if (!(b || checkIfContainsSwordIgnoringSlot(player, Optional.of(event.getHotbarButton())))) {
-                            if (player.getInventory().firstEmpty() != -1 || event.getCurrentItem().getType().isAir()) {
-                                if (event.getCurrentItem().getType().isAir()) {
+                            if (player.getInventory().firstEmpty() != -1 || currentItem.getType().isAir()) {
+                                if (currentItem.getType().isAir()) {
                                     event.setCancelled(true);
                                     player.updateInventory();
                                     player.getInventory().setItem(event.getHotbarButton(), getEnchanted(item));
@@ -235,12 +255,22 @@ public class InventoryManager implements Listener {
         if (event.getEntityType() != EntityType.PLAYER) return;
         Player player = (Player) event.getEntity();
         if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
-        ItemStack item = event.getItem().getItemStack();
+        Item item1 = event.getItem();
+        ItemStack item = item1.getItemStack();
         Material material = item.getType();
         if (checkIfSpecialSword(material)) {
             Util.clearOfWoodSwords(player.getInventory());
             if (player.getItemOnCursor().getType() == Material.WOODEN_SWORD) {
                 player.setItemOnCursor(new ItemStack(Material.AIR));
+            }
+            TeamUtil team1 = Util.getTeam(player);
+            if (team1.equals(TeamUtil.NONE)) return;
+            TeamInfo team = PlayerInfo.getTeamInfo(team1);
+            if (team == null) return;
+            if (team.hasSharp()) {
+                item1.setItemStack(Util.createWithEnchantmentAndUnbreakable(Enchantment.SHARPNESS,material));
+            } else {
+                item1.setItemStack(Util.createWithUnbreakable(material));
             }
         } else if (material == Material.IRON_INGOT || material == Material.GOLD_INGOT || material == Material.EMERALD) {
             TeamUtil team = inGenerator(player.getLocation());

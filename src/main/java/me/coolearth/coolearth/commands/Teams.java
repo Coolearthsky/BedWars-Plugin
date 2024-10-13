@@ -13,10 +13,8 @@ import org.bukkit.entity.Player;
 
 public class Teams implements CommandExecutor {
 
-    private final PlayerInfo m_playerInfo;
     private final Board m_board;
-    public Teams(PlayerInfo playerInfo, Board board) {
-        m_playerInfo = playerInfo;
+    public Teams(Board board) {
         m_board = board;
     }
 
@@ -34,7 +32,7 @@ public class Teams implements CommandExecutor {
             Player player = (Player) sender;
             TeamUtil team = TeamUtil.get(Util.makeFirstCapital(args[0].toLowerCase()));
             if (team != TeamUtil.NONE) {
-                m_playerInfo.updateTeams(player, team);
+                PlayerInfo.updateTeams(player, team);
                 m_board.updateAllScoreboards();
                 return true;
             } else {
@@ -53,7 +51,7 @@ public class Teams implements CommandExecutor {
             if (player == null) return false;
             TeamUtil team = TeamUtil.get(Util.makeFirstCapital(args[1].toLowerCase()));
             if (team != TeamUtil.NONE) {
-                m_playerInfo.updateTeams(player,team);
+                PlayerInfo.updateTeams(player,team);
                 m_board.updateAllScoreboards();
                 return true;
             } else {

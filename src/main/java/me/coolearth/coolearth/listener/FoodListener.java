@@ -18,11 +18,6 @@ import org.bukkit.potion.PotionEffectType;
 
 public class FoodListener implements Listener {
 
-    private final PlayerInfo m_playerInfo;
-    public FoodListener(PlayerInfo playerInfo) {
-        m_playerInfo = playerInfo;
-    }
-
     @EventHandler
     public void onLooseFood(FoodLevelChangeEvent event) {
         event.setCancelled(true);
@@ -51,7 +46,7 @@ public class FoodListener implements Listener {
         }
         else if (type == Material.MILK_BUCKET) {
             inventory.setItem(event.getHand(), new ItemStack(Material.AIR));
-            PlayerAddons playerAddons = m_playerInfo.getPlayers().get(player.getUniqueId());
+            PlayerAddons playerAddons = PlayerInfo.getPlayers().get(player.getUniqueId());
             if (playerAddons != null) {
                 playerAddons.drankMilk();
             }

@@ -23,12 +23,10 @@ import org.bukkit.inventory.ItemStack;
 
 public class BlockListener implements Listener {
     private final BlockManager m_blockManager;
-    private final PlayerInfo m_playerInfo;
     private final SpongeManager m_spongeManager;
     private final Board m_board;
 
-    public BlockListener(PlayerInfo playerInfo, BlockManager blockManager, SpongeManager spongeManager, Board board) {
-        m_playerInfo = playerInfo;
+    public BlockListener(BlockManager blockManager, SpongeManager spongeManager, Board board) {
         m_blockManager = blockManager;
         m_spongeManager = spongeManager;
         m_board = board;
@@ -42,7 +40,7 @@ public class BlockListener implements Listener {
         if (clickedBlock == null) return;
         if (clickedBlock.getType().equals(Material.CHEST)) {
             TeamUtil team = Constants.getChestTeam(clickedBlock.getLocation());
-            TeamInfo teamInfo = m_playerInfo.getTeamInfo(team);
+            TeamInfo teamInfo = PlayerInfo.getTeamInfo(team);
             if (team != Util.getTeam(player) && (teamInfo.isAnyoneOnTeamAlive() || teamInfo.hasBed())) {
                 event.setCancelled(true);
                 player.sendMessage(ChatColor.RED + "You cannot open this Chest as the " + team.getChatColor() + team.getName() + " Team " + ChatColor.RED + "has not been eliminated!");
@@ -136,14 +134,13 @@ public class BlockListener implements Listener {
                     player.sendMessage(ChatColor.RED + "You can't break your own bed!");
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(red);
+                    TeamInfo teamInfo = PlayerInfo.getTeamInfo(red);
                     if (teamInfo == null) {
                         player.sendMessage(ChatColor.RED + "You can't break blocks here!");
                         event.setCancelled(true);
                         return;
                     }
-                    teamInfo.bedBreak(player);
-                    m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
+                    bedBreak(teamInfo, player);
                 }
             }
             else if (type == Material.BLUE_BED ) {
@@ -152,14 +149,13 @@ public class BlockListener implements Listener {
                     player.sendMessage(ChatColor.RED + "You can't break your own bed!");
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(blue);
+                    TeamInfo teamInfo = PlayerInfo.getTeamInfo(blue);
                     if (teamInfo == null) {
                         player.sendMessage(ChatColor.RED + "You can't break blocks here!");
                         event.setCancelled(true);
                         return;
                     }
-                    teamInfo.bedBreak(player);
-                    m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
+                    bedBreak(teamInfo, player);
                 }
             }
             else if (type == Material.YELLOW_BED ) {
@@ -168,14 +164,13 @@ public class BlockListener implements Listener {
                     player.sendMessage(ChatColor.RED + "You can't break your own bed!");
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(yellow);
+                    TeamInfo teamInfo = PlayerInfo.getTeamInfo(yellow);
                     if (teamInfo == null) {
                         player.sendMessage(ChatColor.RED + "You can't break blocks here!");
                         event.setCancelled(true);
                         return;
                     }
-                    teamInfo.bedBreak(player);
-                    m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
+                    bedBreak(teamInfo, player);
                 }
             }
             else if (type == Material.LIME_BED ) {
@@ -184,14 +179,13 @@ public class BlockListener implements Listener {
                     player.sendMessage(ChatColor.RED + "You can't break your own bed!");
                     event.setCancelled(true);
                 } else {
-                    TeamInfo teamInfo = m_playerInfo.getTeamInfo(green);
+                    TeamInfo teamInfo = PlayerInfo.getTeamInfo(green);
                     if (teamInfo == null) {
                         player.sendMessage(ChatColor.RED + "You can't break blocks here!");
                         event.setCancelled(true);
                         return;
                     }
-                    teamInfo.bedBreak(player);
-                    m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
+                    bedBreak(teamInfo, player);
                 }
             }
         } else if (m_blockManager.contains(event.getBlock())){
@@ -201,6 +195,12 @@ public class BlockListener implements Listener {
             player.sendMessage(ChatColor.RED + "You can't break blocks here!");
             event.setCancelled(true);
         }
+    }
+
+    private void bedBreak(TeamInfo teamInfo, Player player) {
+        teamInfo.bedBreak(player);
+        m_board.updatePlayersScoreboardBreakBed(player);
+        m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
     }
 
     private static boolean isBed(Material type) {
