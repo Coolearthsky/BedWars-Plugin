@@ -377,16 +377,14 @@ public class TeamInfo {
             if (player.getTeam().equals(m_team)) continue;
             Player realPlayer = Bukkit.getPlayer(player.getPlayer());
             if (realPlayer == null) continue;
-            realPlayer.sendMessage("\n" + ChatColor.BOLD + "BED DESTRUCTION > " + m_team.getChatColor() + m_team.getName() + " Bed " + ChatColor.GRAY + "was destroyed by " + Util.getTeam(bedBreaker).getChatColor() + bedBreaker.getName() + ChatColor.GRAY + "!");
-            realPlayer.sendMessage("");
+            realPlayer.sendMessage("\n" + ChatColor.BOLD + "BED DESTRUCTION > " + m_team.getChatColor() + m_team.getName() + " Bed " + ChatColor.GRAY + "was destroyed by " + Util.getTeam(bedBreaker).getChatColor() + bedBreaker.getName() + ChatColor.GRAY + "!\n ");
             realPlayer.playSound(realPlayer, Sound.ENTITY_ENDER_DRAGON_GROWL,1,1);
         }
         for (PlayerAddons player : m_playersOnTeam.values()) {
             player.bedBreak();
             Player player1 = Bukkit.getPlayer(player.getPlayer());
             if (!player1.isOnline()) continue;
-            player1.sendMessage("\n" + ChatColor.BOLD + "BED DESTRUCTION > " + ChatColor.GRAY + "Your bed was destroyed by " + Util.getTeam(bedBreaker).getChatColor() + bedBreaker.getName() + ChatColor.GRAY + "!");
-            player1.sendMessage("");
+            player1.sendMessage("\n" + ChatColor.BOLD + "BED DESTRUCTION > " + ChatColor.GRAY + "Your bed was destroyed by " + Util.getTeam(bedBreaker).getChatColor() + bedBreaker.getName() + ChatColor.GRAY + "!\n ");
             player1.playSound(player1, Sound.ENTITY_WITHER_DEATH,1,1);
             player1.sendTitle(ChatColor.RED + "BED DESTROYED!",ChatColor.GRAY + "You will no longer respawn!",(int) (20*0.5),20*2,(int) (20*0.5));
         }

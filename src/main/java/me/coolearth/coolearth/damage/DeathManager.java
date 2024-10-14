@@ -23,11 +23,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public class DeathManager {
 
-    private final Board m_board;
     private final StopGame m_stopGame;
     private final JavaPlugin m_coolearth;
-    public DeathManager(Board board, StopGame stopGame, JavaPlugin coolearth) {
-        m_board = board;
+    public DeathManager(StopGame stopGame, JavaPlugin coolearth) {
         m_stopGame = stopGame;
         m_coolearth = coolearth;
     }
@@ -52,7 +50,7 @@ public class DeathManager {
         if (!playersInfo.isAlive()) {
             Player killer = player.getKiller();
             if (killer != null && !player.equals(killer)) {
-                m_board.updatePlayersScoreboardFinalKills(killer);
+                Board.updatePlayersScoreboardFinalKills(killer);
             }
             TeamUtil team1 = playersInfo.getTeam();
             Util.broadcastMessage(team1.getChatColor() + player.getName() + ChatColor.GRAY + " died " + "§b" + ChatColor.BOLD + "FINAL KILL!");
@@ -64,10 +62,9 @@ public class DeathManager {
                 sendmessage = true;
                 Util.spawnItem(teamGeneratorLocation, item);
             }
-            m_board.updateSpecificTeamsScoreboards(team1);
+            Board.updateSpecificTeamsScoreboards(team1);
             if (!PlayerInfo.getTeamInfo(team1).isAnyoneOnTeamAlive()) {
-                Util.broadcastMessage("\n" + ChatColor.BOLD + "TEAM ELIMINATED > " + team1.getChatColor() + team1.getName() + " Team " + ChatColor.RED + "has been eliminated!"+ "\n");
-                Util.broadcastMessage("");
+                Util.broadcastMessage("\n" + ChatColor.BOLD + "TEAM ELIMINATED > " + team1.getChatColor() + team1.getName() + " Team " + ChatColor.RED + "has been eliminated!\n ");
             }
             TeamUtil aliveTeam = null;
             for (TeamInfo team : PlayerInfo.getTeams().values()) {
@@ -90,8 +87,9 @@ public class DeathManager {
         } else {
             Player killer = player.getKiller();
             if (killer != null && !player.equals(killer)) {
-                m_board.updatePlayersScoreboardKills(killer);
+                Board.updatePlayersScoreboardKills(killer);
             }
+            Util.broadcastMessage(playersInfo.getTeam().getChatColor() + player.getName() + ChatColor.GRAY + " died");
             int totalTime = 5;
             deathMessage(player, totalTime);
             for (int i = 1; i < totalTime; i++) {
@@ -104,7 +102,6 @@ public class DeathManager {
                 };
                 runnable.runTaskLater(m_coolearth, i*20);
             }
-            Util.broadcastMessage(playersInfo.getTeam().getChatColor() + player.getName() + ChatColor.GRAY + " died");
         }
     }
 

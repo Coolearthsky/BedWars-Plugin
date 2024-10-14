@@ -14,6 +14,8 @@ import me.coolearth.coolearth.startstop.StartGame;
 import me.coolearth.coolearth.startstop.StopGame;
 import me.coolearth.coolearth.timed.*;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class CoolearthContainer {
@@ -36,12 +38,10 @@ public class CoolearthContainer {
     private final FoodListener foodListener;
     private final MobListener mobListener;
 
-    //Scoreboard
-    private final Board board;
-
     //Managers
     private final MobManager mobManager;
     private final ShopManager shopManager;
+    private final HealthUpdate healthUpdate;
     private final BlockManager blockManager;
     private final DeathManager deathManager;
     private final StopGame stopGame;
@@ -58,11 +58,9 @@ public class CoolearthContainer {
 
         PlayerInfo.register(coolearth);
 
-        //Scoreboard
-        board = new Board();
-
         //Timed events
-        generators = new Generators(coolearth, board);
+        healthUpdate = new HealthUpdate(coolearth);
+        generators = new Generators(coolearth);
         eggManager = new EggManager(coolearth);
         spongeManager = new SpongeManager(coolearth);
         mobManager = new MobManager(coolearth);
@@ -72,16 +70,16 @@ public class CoolearthContainer {
 
 
         //Start and stopgame controllers
-        startGame = new StartGame(generators, board, voidCheck);
-        stopGame = new StopGame(board, blockManager, generators, eggManager, targetManager, voidCheck);
+        startGame = new StartGame(generators, voidCheck, healthUpdate);
+        stopGame = new StopGame(blockManager, generators, eggManager, targetManager, voidCheck);
 
         //Death manager
         shopManager = new ShopManager( coolearth);
-        deathManager = new DeathManager(board, stopGame, coolearth);
+        deathManager = new DeathManager(stopGame, coolearth);
         playerManager = new PlayerJoinLeaveManager( generators, coolearth);
 
         //Listeners
-        blockListener = new BlockListener( blockManager, spongeManager, board);
+        blockListener = new BlockListener(blockManager, spongeManager);
         inventoryListener = new InventoryManager();
         deathListener = new DeathListener(deathManager);
         playerListener = new PlayerListener(playerManager);
@@ -107,9 +105,7 @@ public class CoolearthContainer {
 
         //Team based commands
         Upgrade upgrade = new Upgrade();
-        Teams teams = new Teams(board);
-
-
+        Teams teams = new Teams();
 
         //Registering commands
         coolearth.getCommand("reset").setExecutor(reset);

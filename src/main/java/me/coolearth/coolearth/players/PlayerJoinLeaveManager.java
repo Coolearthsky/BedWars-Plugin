@@ -57,6 +57,7 @@ public class PlayerJoinLeaveManager {
         Util.removeTeams(player1);
         player1.addScoreboardTag(team.getName());
         Util.setupPlayerFromStart(player1);
+        player1.sendMessage(Util.getStartMessage());
         m_generators.updateSafe(player1);
     }
 

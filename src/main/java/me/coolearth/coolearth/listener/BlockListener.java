@@ -24,12 +24,10 @@ import org.bukkit.inventory.ItemStack;
 public class BlockListener implements Listener {
     private final BlockManager m_blockManager;
     private final SpongeManager m_spongeManager;
-    private final Board m_board;
 
-    public BlockListener(BlockManager blockManager, SpongeManager spongeManager, Board board) {
+    public BlockListener(BlockManager blockManager, SpongeManager spongeManager) {
         m_blockManager = blockManager;
         m_spongeManager = spongeManager;
-        m_board = board;
     }
 
     @EventHandler
@@ -199,8 +197,8 @@ public class BlockListener implements Listener {
 
     private void bedBreak(TeamInfo teamInfo, Player player) {
         teamInfo.bedBreak(player);
-        m_board.updatePlayersScoreboardBreakBed(player);
-        m_board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
+        Board.updatePlayersScoreboardBreakBed(player);
+        Board.updateAllTeamsScoreboardsOfSpecificTeamsBed(teamInfo.getTeam());
     }
 
     private static boolean isBed(Material type) {

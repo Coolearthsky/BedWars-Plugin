@@ -20,7 +20,6 @@ import java.util.*;
 
 public class Generators {
     private final JavaPlugin m_coolearth;
-    private final Board m_board;
     private BukkitRunnable m_spawners = null;
     private int seconds = 0;
     private Materials upgrade = Materials.DIAMOND;
@@ -28,9 +27,8 @@ public class Generators {
     private final Map<Materials, Integer> currentLevel = new HashMap<>();
     private double[] m_timeBetweenUpdatesMinutes = null;
 
-    public Generators(JavaPlugin coolearth, Board board) {
+    public Generators(JavaPlugin coolearth) {
         m_coolearth = coolearth;
-        m_board = board;
     }
 
     public void start() {
@@ -85,7 +83,7 @@ public class Generators {
                     armorStand.setCustomName(ChatColor.YELLOW + "Spawns in " + ChatColor.RED + time + ChatColor.YELLOW + " seconds");
                 }
                 if (level >= 4) {
-                    m_board.updateTime(null,0,0);
+                    Board.updateTime(null,0,0);
                     return;
                 }
                 if (seconds >= 60 * m_timeBetweenUpdatesMinutes[level]) {
@@ -110,7 +108,7 @@ public class Generators {
                         upgrade = Materials.DIAMOND;
                     }
                     if (level >= 4) {
-                        m_board.updateTime(null,0,0);
+                        Board.updateTime(null,0,0);
                         return;
                     }
                 }
@@ -121,11 +119,11 @@ public class Generators {
     }
 
     public void updateTime() {
-        m_board.updateTime(upgrade,(int) (60* m_timeBetweenUpdatesMinutes[level]) - seconds, currentLevel.get(upgrade) + 2);
+        Board.updateTime(upgrade,(int) (60* m_timeBetweenUpdatesMinutes[level]) - seconds, currentLevel.get(upgrade) + 2);
     }
 
     public void updateSafe(Player player) {
-        m_board.updatePlayersScoreboardSafe(player, upgrade,(int) (60* m_timeBetweenUpdatesMinutes[level]) - seconds, currentLevel.get(upgrade) + 2);
+        Board.updatePlayersScoreboardSafe(player, upgrade,(int) (60* m_timeBetweenUpdatesMinutes[level]) - seconds, currentLevel.get(upgrade) + 2);
     }
 
     private void setItem(Materials material) {

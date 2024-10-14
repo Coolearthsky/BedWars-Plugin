@@ -14,15 +14,13 @@ public class StopGame {
     public final TargetManager m_targetManager;
     public final EggManager m_eggManager;
     public final VoidCheck m_voidCheck;
-    public final Board m_board;
 
-    public StopGame(Board board, BlockManager blockManager, Generators generators, EggManager eggManager, TargetManager targetManager, VoidCheck voidCheck) {
+    public StopGame(BlockManager blockManager, Generators generators, EggManager eggManager, TargetManager targetManager, VoidCheck voidCheck) {
         m_blockManager = blockManager;
         m_generators = generators;
         m_eggManager = eggManager;
         m_targetManager= targetManager;
         m_voidCheck = voidCheck;
-        m_board = board;
     }
 
     public void stop() {
@@ -32,7 +30,7 @@ public class StopGame {
         m_eggManager.resetAllLoops();
         m_targetManager.resetAllLoops();
         m_blockManager.resetMap();
-        m_board.endScoreboards();
+        Board.endScoreboards();
         Util.clearChests();
         Util.emptyPlayers();
         m_voidCheck.stopVoidCheck();
