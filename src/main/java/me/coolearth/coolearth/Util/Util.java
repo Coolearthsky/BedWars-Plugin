@@ -105,6 +105,23 @@ public class Util {
         }
     }
 
+
+
+    public static void broadcastStartMessage() {
+        broadcastMessage(getStartMessage());
+    }
+
+    public static String getStartMessage() {
+        return ChatColor.GREEN + ChatColor.BOLD.toString() + "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n" +
+                ChatColor.WHITE + ChatColor.BOLD + "                           Bed Wars\n" +
+                " \n" +
+                ChatColor.YELLOW + ChatColor.BOLD + "    Protect your bed and destroy the enemy beds.\n" +
+                "     Upgrade yourself and your team by collecting\n" +
+                "   Iron, Gold, Emerald and Diamond from generators\n" +
+                "              to access powerful upgrades.\n \n" +
+                ChatColor.GREEN + ChatColor.BOLD + "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
+    }
+
     public static void spawnItem(Location location, Material material) {
         spawnItem(location, new ItemStack(material));
     }
@@ -562,7 +579,9 @@ public class Util {
 
     public static void broadcastMessage(String message) {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendMessage(message);
+            if (player.getScoreboardTags().contains("player")) {
+                player.sendMessage(message);
+            }
         }
     }
 

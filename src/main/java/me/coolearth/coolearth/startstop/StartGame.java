@@ -5,16 +5,17 @@ import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.scoreboard.Board;
 import me.coolearth.coolearth.timed.Generators;
+import me.coolearth.coolearth.timed.HealthUpdate;
 import me.coolearth.coolearth.timed.VoidCheck;
 
 public class StartGame {
     private final Generators m_generators;
-    private final Board m_board;
     private final VoidCheck m_voidCheck;
-    public StartGame(Generators generators, Board board, VoidCheck voidCheck) {
+    private final HealthUpdate m_healthUpdate;
+    public StartGame(Generators generators, VoidCheck voidCheck, HealthUpdate healthUpdate) {
         m_generators = generators;
-        m_board = board;
         m_voidCheck = voidCheck;
+        m_healthUpdate = healthUpdate;
     }
 
     public void start() {
@@ -23,10 +24,12 @@ public class StartGame {
         Util.setupPlayers();
         PlayerInfo.startTeamGenerators();
         m_generators.start();
-        m_board.startScoreboards();
+        Board.startScoreboards();
+        m_healthUpdate.fixHealth();
         m_voidCheck.startVoidCheck();
         Util.spawnArmorStands();
         Util.spawnShopsAndUpgrades();
+        Util.broadcastStartMessage();
         GlobalVariables.gameStarted();
     }
 }

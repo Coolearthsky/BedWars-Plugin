@@ -387,6 +387,6 @@ public class ShopManager {
 
     private static void inventoryFull(Player player) {
         player.playSound(player, Sound.ENTITY_ENDERMAN_TELEPORT, 1, 0.5f);
-        player.sendMessage("Your inventory is full");
+        player.sendMessage(ChatColor.RED + "Purchase Failed! Your inventory is full!");
     }
 }
