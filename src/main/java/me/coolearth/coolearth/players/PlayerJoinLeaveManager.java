@@ -12,6 +12,7 @@ import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 
 import java.util.UUID;
 
@@ -33,6 +34,8 @@ public class PlayerJoinLeaveManager {
         Bukkit.getLogger().info(player1.getAddress().toString());
         if (!player1.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) {
             player1.setGameMode(GameMode.ADVENTURE);
+            player1.setFallDistance(0);
+            player1.setVelocity(new Vector());
             player1.teleport(Constants.getPregameSpawn());
             Util.broadcastMessage(ChatColor.YELLOW + player1.getName() + " has joined!");
             return;
@@ -49,6 +52,8 @@ public class PlayerJoinLeaveManager {
         TeamUtil team = Util.getMostEmptyAliveTeam();
         if (team == null) {
             player1.setGameMode(GameMode.ADVENTURE);
+            player1.setFallDistance(0);
+            player1.setVelocity(new Vector());
             player1.teleport(Constants.getPregameSpawn());
             return;
         }
