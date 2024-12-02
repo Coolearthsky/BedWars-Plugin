@@ -35,6 +35,7 @@ public class PlayerJoinLeaveManager {
         if (!player1.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) {
             player1.setGameMode(GameMode.ADVENTURE);
             player1.setFallDistance(0);
+            player1.setPlayerListHeader(ChatColor.AQUA + "Welcome to Bedwars!");
             player1.setVelocity(new Vector());
             player1.teleport(Constants.getPregameSpawn());
             Util.broadcastMessage(ChatColor.YELLOW + player1.getName() + " has joined!");
@@ -51,6 +52,7 @@ public class PlayerJoinLeaveManager {
         };
         TeamUtil team = Util.getMostEmptyAliveTeam();
         if (team == null) {
+            player1.setPlayerListHeader(ChatColor.AQUA + "Welcome to Bedwars!");
             player1.setGameMode(GameMode.ADVENTURE);
             player1.setFallDistance(0);
             player1.setVelocity(new Vector());
