@@ -3,7 +3,10 @@ package me.coolearth.coolearth.PacketManager;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
+import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.GlobalVariables;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -35,6 +38,21 @@ public class ArmorPackets {
             Bukkit.getLogger().warning("NO JAVAPLUGIN");
             return;
         }
+
+        m_manager.addPacketListener(new PacketAdapter(m_coolearth, PacketType.Play.Client.CHAT) {
+            @Override
+            public void onPacketReceiving(PacketEvent event) {
+                Player player = event.getPlayer();
+                event.setCancelled(true);
+                if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) {
+                    Bukkit.getLogger().info("not on");
+                    Util.broadcastMessage(ChatColor.WHITE + player.getName() + ": " + event.getPacket().getStrings().read(0));
+                    return;
+                }
+                TeamUtil team = Util.getTeam(player);
+                Util.broadcastMessage(team.getChatColor() + "[" + team.getName().toUpperCase() + "] " + ChatColor.WHITE + player.getName() + ": " + event.getPacket().getStrings().read(0));
+            }
+        });
 
         m_manager.addPacketListener(new PacketAdapter(m_coolearth, PacketType.Play.Server.ENTITY_EQUIPMENT) {
             @Override

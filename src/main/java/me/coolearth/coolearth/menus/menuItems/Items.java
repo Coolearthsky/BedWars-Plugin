@@ -44,6 +44,9 @@ public enum Items {
     MAGIC_MILK("magicMilk",new ItemStack(Material.GOLD_INGOT, 4)),
     SPONGE("sponge",new ItemStack(Material.GOLD_INGOT, 2)),
     POP_OUT_BASE("popOutBase", new ItemStack(Material.IRON_INGOT, 24)),
+    GRAY_PANE("grayPane"),
+    LIME_PANE("limePane"),
+    NOTHING("nothing"),
     UNKNOWN(null);
 
     private final ItemStack[] m_cost;
@@ -70,6 +73,10 @@ public enum Items {
 
     public ItemStack getCost(int num) {
         return m_cost[num];
+    }
+
+    public ItemStack[] getCosts() {
+        return m_cost;
     }
 
     public static Items get(String name) {

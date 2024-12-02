@@ -8,6 +8,7 @@ public enum Traps {
     BLINDNESS_TRAP("blindnessTrap"),
     COUNTER_OFFENSE_TRAP("counterOffenseTrap"),
     ALARM_TRAP("alarmTrap"),
+    NO_TRAP("noTrap"),
     UNKNOWN(null);
     private final String m_name;
     private final static Map<String, Traps> traps = new HashMap<>();

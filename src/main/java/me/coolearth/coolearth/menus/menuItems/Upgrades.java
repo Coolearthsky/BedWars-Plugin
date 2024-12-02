@@ -10,6 +10,7 @@ public enum Upgrades {
     MANIAC_MINER("maniacMiner", 4, 8),
     DRAGON_BUFF("dragonBuff", 8),
     HEAL_POOL("healPool", 3),
+    SEPARATOR("separator"),
     UNKNOWN(null);
     String m_name;
     int[] m_costs;

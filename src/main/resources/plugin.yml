@@ -40,3 +40,9 @@ commands:
     aliases: sr
     permission: startRunnables
     permission-message: Yo u got no perms
+  track:
+    description: Toggle tracking a team
+    usage: /track
+    aliases: tr
+    permission: track
+    permission-message: Yo u got no perms

@@ -30,8 +30,8 @@ public class DeathListener implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event){
+        m_deathManager.onPlayerDeath(event.getEntity(),ChatColor.GRAY+event.getDeathMessage());
         event.setDeathMessage("");
-        m_deathManager.onPlayerDeath(event.getEntity());
     }
 
     @EventHandler

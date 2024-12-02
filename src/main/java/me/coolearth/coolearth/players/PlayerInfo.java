@@ -92,5 +92,6 @@ public class PlayerInfo {
         teamInfo1.getPeopleOnTeam().put(playerUUID, playerAddons);
         Util.removeTeams(player);
         player.addScoreboardTag(team.getName());
+        playerAddons.updateWoolState();
     }
 }

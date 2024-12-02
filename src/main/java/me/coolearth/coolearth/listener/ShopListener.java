@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 
 public class ShopListener implements Listener {
@@ -35,6 +36,11 @@ public class ShopListener implements Listener {
     @EventHandler
     public void onShopClose(InventoryCloseEvent event) {
         m_shopManager.onShopClose((Player) event.getPlayer());
+    }
+
+    @EventHandler
+    public void onShopOpen(InventoryOpenEvent event) {
+        m_shopManager.onShopOpen((Player) event.getPlayer(), event.getInventory());
     }
 
     @EventHandler

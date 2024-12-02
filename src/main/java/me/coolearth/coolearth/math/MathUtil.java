@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MathUtil {
@@ -21,6 +22,35 @@ public class MathUtil {
             }
         }
         return true;
+    }
+
+    public static <T> List<T[]> splitArrayIntoSubarrays(T[] originalArray, int sizesOfNewArrays) {
+        // Create a list to store the subarrays
+        List<T[]> subarrays = new ArrayList<>();
+
+        // Calculate the number of complete subarrays
+        int completeSubarrays = originalArray.length / sizesOfNewArrays;
+
+        // Calculate the number of remaining elements
+        int remainingElements = originalArray.length % sizesOfNewArrays;
+
+        // Split the array into subarrays
+        for (int i = 0; i < completeSubarrays; i++) {
+            // Create a subarray
+            T[] subarray = Arrays.copyOfRange(originalArray, i * sizesOfNewArrays, (i + 1) * sizesOfNewArrays);
+            subarrays.add(subarray);
+        }
+
+        // Handle the remaining elements if any
+        if (remainingElements > 0) {
+            T[] lastSubarray = Arrays.copyOfRange(originalArray,
+                    completeSubarrays * sizesOfNewArrays,
+                    completeSubarrays * sizesOfNewArrays + remainingElements
+            );
+            subarrays.add(lastSubarray);
+        }
+
+        return subarrays;
     }
 
     public static String convertToTime(int seconds) {

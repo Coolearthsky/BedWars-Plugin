@@ -5,6 +5,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class Coolearth extends JavaPlugin {
     private CoolearthContainer coolearthContainer;
+    private static Coolearth instance;
+
     @Override
     public void onEnable() {
         Bukkit.getLogger().info("ENABLING");
@@ -14,5 +16,9 @@ public final class Coolearth extends JavaPlugin {
     @Override
     public void onDisable() {
         coolearthContainer.onDisable();
+    }
+
+    public static Coolearth getInstance() {
+        return instance;
     }
 }
