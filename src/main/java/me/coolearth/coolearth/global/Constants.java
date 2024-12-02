@@ -19,6 +19,7 @@ public class Constants {
     private static final World world = Bukkit.getWorld("world");
     private static final Pair<Location,Location> placeZone = new Pair<>(new Location(world, 46, -8, -43),new Location(world, -101,40, 104));
     private static final Location spawn = new Location(world,-27.5,41, 31.5);
+    private static final Location pregameSpawn = new Location(world,-27.5,85, 31.5);
 
     static {
         //Shops
@@ -89,6 +90,10 @@ public class Constants {
 
     public static Location getSpawn() {
         return spawn;
+    }
+
+    public static Location getPregameSpawn() {
+        return pregameSpawn;
     }
 
     public static Location getTeamGeneratorLocation(TeamUtil team) {

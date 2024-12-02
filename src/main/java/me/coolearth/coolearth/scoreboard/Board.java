@@ -19,7 +19,6 @@ import java.util.Optional;
 public class Board {
 
     public static void createNewScoreboard(Player player, Materials material, int timeSeconds, int level) {
-        Bukkit.getLogger().info("Bro");
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective health = scoreboard.registerNewObjective("health", Criteria.HEALTH, "Health");
         health.setDisplaySlot(DisplaySlot.PLAYER_LIST);

@@ -8,22 +8,39 @@ import me.coolearth.coolearth.scoreboard.Board;
 import me.coolearth.coolearth.timed.*;
 import org.bukkit.entity.*;
 
-public class StopGame {
-    public final BlockManager m_blockManager;
-    public final Generators m_generators;
-    public final TargetManager m_targetManager;
-    public final EggManager m_eggManager;
-    public final VoidCheck m_voidCheck;
+public class GameController {
+    public static BlockManager m_blockManager;
+    public static Generators m_generators;
+    public static TargetManager m_targetManager;
+    public static EggManager m_eggManager;
+    public static VoidCheck m_voidCheck;
+    public static HealthUpdate m_healthUpdate;
 
-    public StopGame(BlockManager blockManager, Generators generators, EggManager eggManager, TargetManager targetManager, VoidCheck voidCheck) {
+    public static void register(BlockManager blockManager, Generators generators, EggManager eggManager, TargetManager targetManager, VoidCheck voidCheck, HealthUpdate healthUpdate) {
         m_blockManager = blockManager;
         m_generators = generators;
         m_eggManager = eggManager;
         m_targetManager= targetManager;
         m_voidCheck = voidCheck;
+        m_healthUpdate = healthUpdate;
     }
 
-    public void stop() {
+    public static void start() {
+        Util.resetTeams();
+        PlayerInfo.startPlayers();
+        Util.setupPlayers();
+        PlayerInfo.startTeamGenerators();
+        m_generators.start();
+        Board.startScoreboards();
+        m_healthUpdate.fixHealth();
+        m_voidCheck.startVoidCheck();
+        Util.spawnArmorStands();
+        Util.spawnShopsAndUpgrades();
+        Util.broadcastStartMessage();
+        GlobalVariables.gameStarted();
+    }
+
+    public static void stop() {
         GlobalVariables.gameEnded();
         PlayerInfo.stopLoops();
         m_generators.resetAllLoops();

@@ -9,7 +9,7 @@ import me.coolearth.coolearth.players.PlayerAddons;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
 import me.coolearth.coolearth.scoreboard.Board;
-import me.coolearth.coolearth.startstop.StopGame;
+import me.coolearth.coolearth.startstop.GameController;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.damage.DamageType;
@@ -23,10 +23,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public class DeathManager {
 
-    private final StopGame m_stopGame;
     private final JavaPlugin m_coolearth;
-    public DeathManager(StopGame stopGame, JavaPlugin coolearth) {
-        m_stopGame = stopGame;
+    public DeathManager(JavaPlugin coolearth) {
         m_coolearth = coolearth;
     }
 
@@ -42,18 +40,19 @@ public class DeathManager {
         }
     }
 
-    public void onPlayerDeath(Player player) {
+    public void onPlayerDeath(Player player, String realDeathMessage) {
         if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
         PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
         if (playersInfo == null) return;
         playersInfo.onDeath();
+        TeamUtil team1 = playersInfo.getTeam();
+        String deathMessage = getDeathMessage(player, realDeathMessage);
         if (!playersInfo.isAlive()) {
             Player killer = player.getKiller();
             if (killer != null && !player.equals(killer)) {
                 Board.updatePlayersScoreboardFinalKills(killer);
             }
-            TeamUtil team1 = playersInfo.getTeam();
-            Util.broadcastMessage(team1.getChatColor() + player.getName() + ChatColor.GRAY + " died " + "§b" + ChatColor.BOLD + "FINAL KILL!");
+            Util.broadcastMessage(deathMessage + "§b" + ChatColor.BOLD + " FINAL KILL!");
             player.sendMessage(ChatColor.RED + "You have been eliminated!");
             Location teamGeneratorLocation = Constants.getTeamGeneratorLocation(team1);
             boolean sendmessage = false;
@@ -83,17 +82,18 @@ public class DeathManager {
             } else {
                 Util.broadcastMessage("Game end");
             }
-            m_stopGame.stop();
+            GameController.stop();
         } else {
             Player killer = player.getKiller();
             if (killer != null && !player.equals(killer)) {
                 Board.updatePlayersScoreboardKills(killer);
             }
-            Util.broadcastMessage(playersInfo.getTeam().getChatColor() + player.getName() + ChatColor.GRAY + " died");
+            Util.broadcastMessage(deathMessage);
             int totalTime = 5;
             deathMessage(player, totalTime);
             for (int i = 1; i < totalTime; i++) {
                 int finalI = i;
+                //TODO make this do something if bed is broken while dead
                 BukkitRunnable runnable = new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -103,6 +103,17 @@ public class DeathManager {
                 runnable.runTaskLater(m_coolearth, i*20);
             }
         }
+    }
+
+    private String getDeathMessage(Player player, String deathMessage) {
+        String name = player.getName();
+        deathMessage = deathMessage.replace(name, Util.getTeam(player).getChatColor() + name + ChatColor.GRAY);
+        Player killer = player.getKiller();
+        if (killer != null) {
+            String killerName = killer.getName();
+            deathMessage = deathMessage.replace(killerName, Util.getTeam(killer).getChatColor() + killerName + ChatColor.GRAY);
+        }
+        return deathMessage;
     }
 
     private void deathMessage(Player player, int time) {

@@ -3,19 +3,15 @@ package me.coolearth.coolearth;
 import me.coolearth.coolearth.PacketManager.ArmorPackets;
 import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.commands.*;
+import me.coolearth.coolearth.config.Config;
 import me.coolearth.coolearth.damage.DeathManager;
 import me.coolearth.coolearth.listener.*;
-import me.coolearth.coolearth.players.PlayerAddons;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.PlayerJoinLeaveManager;
-import me.coolearth.coolearth.scoreboard.Board;
 import me.coolearth.coolearth.shops.ShopManager;
-import me.coolearth.coolearth.startstop.StartGame;
-import me.coolearth.coolearth.startstop.StopGame;
+import me.coolearth.coolearth.startstop.GameController;
 import me.coolearth.coolearth.timed.*;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class CoolearthContainer {
@@ -44,8 +40,6 @@ public class CoolearthContainer {
     private final HealthUpdate healthUpdate;
     private final BlockManager blockManager;
     private final DeathManager deathManager;
-    private final StopGame stopGame;
-    private final StartGame startGame;
     private final PlayerJoinLeaveManager playerManager;
 
     public CoolearthContainer(JavaPlugin coolearth) {
@@ -53,10 +47,16 @@ public class CoolearthContainer {
         if (Bukkit.getPluginManager().getPlugin("ProtocolLib") != null) {
             ArmorPackets.register(coolearth);
         }
+
+        //Register the extra player info
+        PlayerInfo.register(coolearth);
+        Config.register(coolearth);
+
         //Block manager, manages certain areas and where players can place blocks
         blockManager = new BlockManager();
 
-        PlayerInfo.register(coolearth);
+        //Death manager
+        deathManager = new DeathManager(coolearth);
 
         //Timed events
         healthUpdate = new HealthUpdate(coolearth);
@@ -65,17 +65,14 @@ public class CoolearthContainer {
         spongeManager = new SpongeManager(coolearth);
         mobManager = new MobManager(coolearth);
         targetManager = new TargetManager(coolearth, mobManager);
-        voidCheck = new VoidCheck(coolearth);
         armorStands = new ArmorStands(coolearth);
+        voidCheck = new VoidCheck(coolearth, deathManager);
 
+        //Game controller
+        GameController.register(blockManager, generators, eggManager, targetManager, voidCheck, healthUpdate);
 
-        //Start and stopgame controllers
-        startGame = new StartGame(generators, voidCheck, healthUpdate);
-        stopGame = new StopGame(blockManager, generators, eggManager, targetManager, voidCheck);
-
-        //Death manager
+        //Player manager
         shopManager = new ShopManager( coolearth);
-        deathManager = new DeathManager(stopGame, coolearth);
         playerManager = new PlayerJoinLeaveManager( generators, coolearth);
 
         //Listeners
@@ -99,16 +96,18 @@ public class CoolearthContainer {
         Bukkit.getPluginManager().registerEvents(projectileListener,coolearth);
 
         //Creating start/stop commands
-        Reset reset = new Reset(startGame, stopGame);
-        Start start = new Start(startGame);
-        Stop stop = new Stop(stopGame);
+        Reset reset = new Reset();
+        Start start = new Start();
+        Stop stop = new Stop();
 
         //Team based commands
         Upgrade upgrade = new Upgrade();
         Teams teams = new Teams();
+        Track track = new Track();
 
         //Registering commands
         coolearth.getCommand("reset").setExecutor(reset);
+        coolearth.getCommand("track").setExecutor(track);
         coolearth.getCommand("upgrade").setExecutor(upgrade);
         coolearth.getCommand("teams").setExecutor(teams);
         coolearth.getCommand("start").setExecutor(start);
@@ -116,7 +115,7 @@ public class CoolearthContainer {
     }
 
     public void onDisable() {
-        stopGame.stop();
+        GameController.stop();
         Bukkit.getLogger().info("DISABLING");
     }
 }

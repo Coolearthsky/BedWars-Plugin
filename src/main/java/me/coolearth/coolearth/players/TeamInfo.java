@@ -5,6 +5,7 @@ import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.math.RomanNumber;
+import me.coolearth.coolearth.menus.menuItems.MenuUtil;
 import me.coolearth.coolearth.menus.menuItems.Traps;
 import me.coolearth.coolearth.menus.menuItems.Upgrades;
 import org.bukkit.*;
@@ -216,9 +217,9 @@ public class TeamInfo {
         addToShop(player,upgrades, 19, Upgrades.IRON_FORGE, Upgrades.HEAL_POOL, Upgrades.DRAGON_BUFF);
         addToShop(player,upgrades, 14, Traps.BLINDNESS_TRAP, Traps.COUNTER_OFFENSE_TRAP, Traps.ALARM_TRAP);
         addToShop(player,upgrades, 23, Traps.MINING_FATIGUE_TRAP);
-        Util.addToShop(upgrades, 39, getTraps(player));
+        MenuUtil.addToShop(upgrades, 39, getTraps(player));
         for (int i = 27; i < 36; i++) {
-            Util.addToShop(upgrades, i, Material.GRAY_STAINED_GLASS_PANE);
+            addToShop(player,upgrades, i, Upgrades.SEPARATOR);
         }
     }
 
@@ -231,7 +232,7 @@ public class TeamInfo {
             ItemMeta itemMeta = item.getItemMeta();
             List<String> e = itemMeta.getLore();
             itemMeta.setDisplayName(ChatColor.GREEN + itemMeta.getDisplayName().substring(2));
-            int g =4;
+            int g = 4;
             if (size == 3) {
                 g = 2;
             }
@@ -247,7 +248,9 @@ public class TeamInfo {
             count++;
         }
         for (int i = 0; i < 3-size; i++) {
-            array.add(new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS, i+size+1));
+            int amount = i + size + 1;
+            int cost = (int) Math.pow(2, size);
+            array.add(MenuUtil.noTrapStyle(Material.LIGHT_GRAY_STAINED_GLASS, amount, cost));
         }
         ItemStack[] intarray = new ItemStack[array.size()];
         for(int i = 0; i < array.size(); i++) intarray[i] = array.get(i);
@@ -255,17 +258,21 @@ public class TeamInfo {
     }
 
     private ItemStack getItem(Upgrades upgrades, Player player) {
-        int cost = upgrades.getFirstCost();
-        boolean bool = player.getInventory().contains(Material.DIAMOND, cost);
+        Integer cost = null;
+        Boolean bool = null;
+        if (upgrades.getCost().length > 0) {
+            cost = upgrades.getFirstCost();
+            bool = player.getInventory().contains(Material.DIAMOND, cost);
+        }
         switch (upgrades) {
             case SHARPENED_SWORDS:
-                return Util.addNamesUpgradeStyle(!m_sharpness,bool,new ItemStack(Material.IRON_SWORD), "Sharpened Swords", upgrades.getName(), cost, "Gives all your team's swords sharpness 1.");
+                return MenuUtil.addNamesUpgradeStyle(!m_sharpness,bool,new ItemStack(Material.IRON_SWORD), "Sharpened Swords", upgrades.getName(), cost, "Gives all your team's swords sharpness 1.");
             case REINFORCED_ARMOR:
                 String num = RomanNumber.toRoman(m_protectionLevel+1);
                 if (m_protectionLevel == 4) num = "IV";
-                return Util.addNamesUpgradeStyle(bool,new ItemStack(Material.IRON_CHESTPLATE), "Reinforced Armor " + num, upgrades.getName(), getPairCost(upgrades), "Gives your armor protection.");
+                return MenuUtil.addNamesUpgradeStyle(bool,new ItemStack(Material.IRON_CHESTPLATE), "Reinforced Armor " + num, upgrades.getName(), getPairCost(upgrades), "Gives your armor protection.");
             case HEAL_POOL:
-                return Util.addNamesUpgradeStyle(!m_healPool.isPresent(),bool,new ItemStack(Material.BEACON), "Heal Pool", upgrades.getName(), cost, "Creates a range around your base where you get regen.");
+                return MenuUtil.addNamesUpgradeStyle(!m_healPool.isPresent(),bool,new ItemStack(Material.BEACON), "Heal Pool", upgrades.getName(), cost, "Creates a range around your base where you get regen.");
             case IRON_FORGE:
                 String ironForge;
                 switch (m_generatorLevel) {
@@ -285,13 +292,15 @@ public class TeamInfo {
                     default:
                         throw new UnsupportedOperationException("Impossible gen level");
                 }
-                return Util.addNamesUpgradeStyle(bool,new ItemStack(Material.FURNACE), ironForge, upgrades.getName(), getPairCost(upgrades), "Speeds up your generator, can even give you emeralds.");
+                return MenuUtil.addNamesUpgradeStyle(bool,new ItemStack(Material.FURNACE), ironForge, upgrades.getName(), getPairCost(upgrades), "Speeds up your generator, can even give you emeralds.");
             case MANIAC_MINER:
                 String num12 = RomanNumber.toRoman(m_miningManiacLevel+1);
                 if (m_miningManiacLevel == 2) num12 = "II";
-                return Util.addNamesUpgradeStyle(bool,new ItemStack(Material.GOLDEN_PICKAXE), "Maniac Miner "+ num12, upgrades.getName(), getPairCost(upgrades), "Gives you haste.");
+                return MenuUtil.addNamesUpgradeStyle(bool,new ItemStack(Material.GOLDEN_PICKAXE), "Maniac Miner "+ num12, upgrades.getName(), getPairCost(upgrades), "Gives you haste.");
             case DRAGON_BUFF:
-                return Util.addNamesUpgradeStyle(false,bool,new ItemStack(Material.DRAGON_EGG), "Dragon Buff", upgrades.getName(), cost, "Gives you an extra dragon in the end game.");
+                return MenuUtil.addNamesUpgradeStyle(false,bool,new ItemStack(Material.DRAGON_EGG), "Dragon Buff", upgrades.getName(), cost, "Gives you an extra dragon in the end game.");
+            case SEPARATOR:
+                return MenuUtil.getSeparator(false, "Purchasable","Traps Queue");
             default:
                 throw new UnsupportedOperationException("Not allowed upgrade");
         }
@@ -343,13 +352,13 @@ public class TeamInfo {
         }
         switch (traps) {
             case BLINDNESS_TRAP:
-                return Util.addNamesTrapStyle(bool,new ItemStack(Material.TRIPWIRE_HOOK), "It's a trap!", traps.getName(), trapCost, "Inflicts Blindness and Slowness for","8 seconds.");
+                return MenuUtil.addNamesTrapStyle(bool,new ItemStack(Material.TRIPWIRE_HOOK), "It's a trap!", traps.getName(), trapCost, "Inflicts Blindness and Slowness for","8 seconds.");
             case ALARM_TRAP:
-                return Util.addNamesTrapStyle(bool,new ItemStack(Material.REDSTONE_TORCH), "Alarm Trap", traps.getName(), trapCost, "Reveals invisible players as well as", "their name and team.");
+                return MenuUtil.addNamesTrapStyle(bool,new ItemStack(Material.REDSTONE_TORCH), "Alarm Trap", traps.getName(), trapCost, "Reveals invisible players as well as", "their name and team.");
             case COUNTER_OFFENSE_TRAP:
-                return Util.addNamesTrapStyle(bool,new ItemStack(Material.FEATHER), "Counter Offense Trap", traps.getName(), trapCost, "Grants Speed II, and Jump Boost II", "for 15 seconds to allied players", "near your base.");
+                return MenuUtil.addNamesTrapStyle(bool,new ItemStack(Material.FEATHER), "Counter Offense Trap", traps.getName(), trapCost, "Grants Speed II, and Jump Boost II", "for 15 seconds to allied players", "near your base.");
             case MINING_FATIGUE_TRAP:
-                return Util.addNamesTrapStyle(bool,new ItemStack(Material.IRON_PICKAXE), "Mining Fatigue Trap", traps.getName(), trapCost, "Inflict Mining Fatigue for 10 seconds.");
+                return MenuUtil.addNamesTrapStyle(bool,new ItemStack(Material.IRON_PICKAXE), "Mining Fatigue Trap", traps.getName(), trapCost, "Inflict Mining Fatigue for 10 seconds.");
             default:
                 throw new UnsupportedOperationException("Not allowed trap");
         }
@@ -379,6 +388,7 @@ public class TeamInfo {
             if (realPlayer == null) continue;
             realPlayer.sendMessage("\n" + ChatColor.BOLD + "BED DESTRUCTION > " + m_team.getChatColor() + m_team.getName() + " Bed " + ChatColor.GRAY + "was destroyed by " + Util.getTeam(bedBreaker).getChatColor() + bedBreaker.getName() + ChatColor.GRAY + "!\n ");
             realPlayer.playSound(realPlayer, Sound.ENTITY_ENDER_DRAGON_GROWL,1,1);
+            realPlayer.playSound(realPlayer, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1, 1);
         }
         for (PlayerAddons player : m_playersOnTeam.values()) {
             player.bedBreak();
@@ -495,7 +505,7 @@ public class TeamInfo {
         for (int i = 0; i < (upgrades.length); i++) {
             itemStacks[i] = getItem(upgrades[i], player);
         }
-        Util.addToShop(inventory, startNum, itemStacks);
+        MenuUtil.addToShop(inventory, startNum, itemStacks);
     }
 
     private void addToShop(Player player, Inventory inventory, int startNum, Traps... traps) {
@@ -503,7 +513,7 @@ public class TeamInfo {
         for (int i = 0; i < (traps.length); i++) {
             itemStacks[i] = getItem(traps[i], player);
         }
-        Util.addToShop(inventory, startNum, itemStacks);
+        MenuUtil.addToShop(inventory, startNum, itemStacks);
     }
 
     public Map<UUID, PlayerAddons> getPeopleOnTeam() {

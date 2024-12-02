@@ -5,6 +5,7 @@ import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.block.BlockManager;
 import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.global.GlobalVariables;
+import me.coolearth.coolearth.players.PlayerAddons;
 import me.coolearth.coolearth.players.PlayerInfo;
 import me.coolearth.coolearth.players.TeamInfo;
 import me.coolearth.coolearth.scoreboard.Board;
@@ -101,6 +102,14 @@ public class BlockListener implements Listener {
             block.getWorld().setBlockData(block.getLocation(), Material.WATER.createBlockData());
             Player player = event.getPlayer();
             if (!player.getGameMode().equals(GameMode.CREATIVE)) player.getInventory().setItem(event.getHand(),new ItemStack(Material.AIR));
+        } else if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK) || event.getAction().equals(Action.RIGHT_CLICK_AIR)) {
+            if (item.getType().equals(Material.COMPASS)) {
+                if (PlayerInfo.getTeamInfo(Util.getTeam(event.getPlayer())).numberOfPeopleOnTeam() == 1) {
+                    event.getPlayer().openInventory(GlobalVariables.getCompassMenu());
+                } else {
+                    event.getPlayer().openInventory(GlobalVariables.getCompassMenuMult());
+                }
+            }
         }
     }
 
@@ -185,6 +194,9 @@ public class BlockListener implements Listener {
                     }
                     bedBreak(teamInfo, player);
                 }
+            }
+            for (PlayerAddons playerAddons : PlayerInfo.getPlayers().values()) {
+                playerAddons.updateWoolState();
             }
         } else if (m_blockManager.contains(event.getBlock())){
             m_blockManager.remove(event.getBlock());

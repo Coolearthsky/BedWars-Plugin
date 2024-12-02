@@ -7,6 +7,7 @@ import me.coolearth.coolearth.Util.Util;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.math.MathUtil;
 import me.coolearth.coolearth.menus.menuItems.Items;
+import me.coolearth.coolearth.menus.menuItems.MenuUtil;
 import me.coolearth.coolearth.menus.menuItems.Traps;
 import me.coolearth.coolearth.menus.menuItems.Upgrades;
 import me.coolearth.coolearth.players.PlayerAddons;
@@ -15,12 +16,12 @@ import me.coolearth.coolearth.players.TeamInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -28,9 +29,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class ShopManager {
     private final JavaPlugin m_coolearth;
@@ -40,26 +39,23 @@ public class ShopManager {
 
     public void onInventoryPickup(Player player) {
         if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
+
         PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
         if (playersInfo == null) return;
-        if (playersInfo.inMenu()) {
-            BukkitRunnable runnable = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    playersInfo.update();
 
-                }
-            };
-            runnable.runTaskLater(m_coolearth, 0);
-        } else if (playersInfo.inUpgrades()) {
-            BukkitRunnable runnable = new BukkitRunnable() {
-                @Override
-                public void run() {
+        BukkitRunnable runnable = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (playersInfo.inMenu()) {
+                    playersInfo.update();
+                } else if (playersInfo.inUpgrades()) {
                     PlayerInfo.getTeamInfo(playersInfo.getTeam()).createUpgradesForPlayer(player.getUniqueId());
+                } else if (playersInfo.inTrackerMenu()) {
+                    playersInfo.updateWoolState();
                 }
-            };
-            runnable.runTaskLater(m_coolearth, 0);
-        }
+            }
+        };
+        runnable.runTaskLater(m_coolearth, 0);
     }
 
     public void onShopClick(Set<String> tags, Player player) {
@@ -87,57 +83,164 @@ public class ShopManager {
         if (teamRelativeAddons == null) return;
         teamRelativeAddons.closeInventory();
     }
+    public void onShopOpen(Player player, Inventory inventory) {
+        PlayerAddons teamRelativeAddons = PlayerInfo.getPlayersInfo(player);
+        if (teamRelativeAddons == null) return;
+        teamRelativeAddons.openInventory(inventory);
+    }
+
 
     public void onShopItemClick(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
         PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
         if (playersInfo == null) return;
+
+        Runnable cancel = () -> event.setCancelled(true);
+        InventoryAction actionType = event.getAction();
         TeamInfo teamInfo = PlayerInfo.getTeamInfo(playersInfo.getTeam());
-        if (playersInfo.inMenu()) {
-            if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
-                if (event.getClickedInventory() != player.getInventory()) {
-                    event.setCancelled(true);
-                    return;
-                }
-                BukkitRunnable runnable = new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        playersInfo.update();
-                    }
-                };
-                runnable.runTaskLater(m_coolearth, 0);
-            }
-        } else if (playersInfo.inUpgrades()) {
-            if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
-                if (event.getClickedInventory() != player.getInventory()) {
-                    event.setCancelled(true);
-                    return;
-                }
-                BukkitRunnable runnable = new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        teamInfo.createUpgradesForPlayer(player.getUniqueId());
-                    }
-                };
-                runnable.runTaskLater(m_coolearth, 0);
-            }
+        ClickType clickType = event.getClick();
+        Inventory clickedInv = event.getClickedInventory();
+        ItemStack cursorItem = event.getCursor();
+        ItemStack currentItem = event.getCurrentItem();
+        int slot = event.getSlot();
+        Materials materials = null;
+        if (cursorItem != null ) {
+            materials = Materials.get(cursorItem.getType());
         }
-        if (event.getClickedInventory() == teamInfo.getUpgradesMenu(player.getUniqueId())) {
-            if (event.getSlot() < 0) return;
-            event.setCancelled(true);
+        if (!Materials.UNKNOWN.equals(materials) || isDrop(playersInfo, clickType)) {
+            if (clickedInv != player.getInventory() && isDrop(playersInfo, clickType)) {
+                cancel.run();
+                return;
+            }
+
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (playersInfo.inMenu()) {
+                        playersInfo.update();
+                    } else if (playersInfo.inUpgrades()) {
+                        teamInfo.createUpgradesForPlayer(player.getUniqueId());
+                    } else if (playersInfo.inTrackerMenu()) {
+                        playersInfo.updateWoolState();
+                    }
+                }
+            }.runTaskLater(m_coolearth, 0);
+            return;
+        }
+        // Common inventory click handling
+        if (slot < 0) return;
+        // Handle specific menu clicks
+        Runnable runnable;
+
+        if (clickedInv == teamInfo.getUpgradesMenu(player.getUniqueId())) {
+            runnable = () -> upgradeClickHandling(currentItem, player);
+        } else if (playersInfo.m_shop.contains(clickedInv)) {
+            runnable = () -> shopClickHandling(currentItem, slot, player, clickType);
+        } else if (GlobalVariables.contains(clickedInv) || playersInfo.clickedCompassMenu(clickedInv)) {
+            runnable = () -> compassMenu(currentItem, player);
+        } else if (playersInfo.clickedQuickBuyMenu(clickedInv)) {
+            runnable = () -> quickBuyClick(slot, player);
+        } else {
+            runnable = null;
+        }
+
+        if (runnable != null) {
+            handleMenuClick(actionType, cancel, player, runnable);
+        }
+        // Handle shift-clicking into protected inventories
+        if (isProtectedInventory(event.getInventory(), playersInfo, teamInfo, player) && event.isShiftClick()) {
+            cancel.run();
             player.updateInventory();
-            if (event.getAction() == InventoryAction.HOTBAR_SWAP) return;
-            upgradeClickHandling(event.getCurrentItem(), player);
-        } else if (playersInfo.m_shop.contains(event.getClickedInventory())) {
-            int slot = event.getSlot();
-            if (slot < 0) return;
-            event.setCancelled(true);
-            player.updateInventory();
-            if (event.getAction() == InventoryAction.HOTBAR_SWAP) return;
-            shopClickHandling(event.getCurrentItem(), slot, player);
-        } else if ((event.getInventory() == teamInfo.getUpgradesMenu(player.getUniqueId())|| playersInfo.m_shop.contains(event.getInventory())) && event.isShiftClick()) {
-            event.setCancelled(true);
-            player.updateInventory();
+        }
+    }
+
+    private void quickBuyClick(int slot, Player player) {
+        PlayerAddons playerAddons = PlayerInfo.getPlayersInfo(player);
+        if (playerAddons == null) return;
+        if (slot == 4) return;
+
+        playerAddons.addToQuickBuy(slot);
+        playerAddons.update();
+        playerAddons.openShopMenu(0);
+    }
+
+    private boolean isProtectedInventory(Inventory inv, PlayerAddons playersInfo, TeamInfo teamInfo, Player player) {
+        return GlobalVariables.contains(inv) || playersInfo.inTrackerMenu() || playersInfo.inQuickBuyMenu() ||
+                inv == teamInfo.getUpgradesMenu(player.getUniqueId()) ||
+                playersInfo.m_shop.contains(inv);
+    }
+
+    private boolean isDrop(PlayerAddons playersInfo, ClickType clickType) {
+        return (playersInfo.inMenu() || playersInfo.inUpgrades() || playersInfo.inTrackerMenu()) &&
+                (clickType == ClickType.DROP || clickType == ClickType.CONTROL_DROP);
+    }
+
+    // Helper methods
+    private void handleMenuClick(InventoryAction actionType, Runnable cancel, Player player, Runnable action) {
+        cancel.run();
+        player.updateInventory();
+        if (actionType != InventoryAction.HOTBAR_SWAP) {
+            action.run();
+        }
+    }
+
+    public void compassMenu(ItemStack currentItem, Player player) {
+        if (currentItem == null) return;
+        PlayerAddons playersInfo = PlayerInfo.getPlayersInfo(player);
+        ItemMeta itemMeta = currentItem.getItemMeta();
+        switch (currentItem.getType()) {
+            case COMPASS:
+                playersInfo.updateWoolState();
+                playersInfo.openCompassMenu();
+                break;
+            case EMERALD:
+                player.openInventory(GlobalVariables.getQuickCommunications());
+                break;
+            case ARROW:
+                if (itemMeta == null) {
+                    throw new UnsupportedOperationException("No item meta");
+                }
+                switch (itemMeta.getItemName()) {
+                    case "shop":
+                        PlayerInfo.getPlayersInfo(player).openShopMenu(0);
+                        return;
+                    case "tracker":
+                        if (PlayerInfo.getTeamInfo(Util.getTeam(player)).numberOfPeopleOnTeam() == 1)  {
+                            player.openInventory(GlobalVariables.getCompassMenu());
+                        } else {
+                            player.openInventory(GlobalVariables.getCompassMenuMult());
+                        }
+                        return;
+                    default:
+                        throw new UnsupportedOperationException("Not a known back item");
+                }
+            case RED_WOOL:
+            case YELLOW_WOOL:
+            case LIME_WOOL:
+            case BLUE_WOOL:
+                if (itemMeta == null) {
+                    throw new UnsupportedOperationException("No item meta");
+                }
+                String itemName = itemMeta.getItemName();
+                TeamUtil team = TeamUtil.get(itemName);
+                if (team.equals(TeamUtil.NONE)) throw new UnsupportedOperationException("Not a team");
+                if (playersInfo.trackingTeam(team)) return;
+                if (!playersInfo.trackerPurchasable()) {
+                    if (playersInfo.hasBeds()) {
+                        MenuUtil.playUnsuccessfulPurchase(player);
+                        player.sendMessage(ChatColor.RED + "Not all enemy beds are destroyed yet!");
+                    } else {
+                        noMoney(player, new ItemStack(Material.EMERALD, 2));
+                    }
+                    return;
+                }
+                playersInfo.addTeamToTracker(team);
+                takeMoney(player, itemName + " Tracking", new ItemStack(Material.EMERALD, 2));
+                player.sendMessage(ChatColor.RED + "You will lose ability to track this team when you die!");
+                playersInfo.updateWoolState();
+                break;
+            default:
+                throw new UnsupportedOperationException("Not a known item");
         }
     }
 
@@ -155,7 +258,7 @@ public class ShopManager {
                 ItemStack cost = teamBased.getItemStackCostTraps();
                 if (!inventory.contains(cost.getType(), cost.getAmount())) {
                     //TODO fix this to check offhand
-                    noMoney(player, cost, inventory);
+                    noMoney(player, cost);
                     return;
                 }
                 takeMoney(player, currentItem, cost, true);
@@ -168,7 +271,7 @@ public class ShopManager {
                 ItemStack cost = teamBased.getItemStackCost(upgrades);
                 if (!inventory.contains(cost.getType(), cost.getAmount())) {
                     //TODO fix this to check offhand
-                    noMoney(player, cost, inventory);
+                    noMoney(player, cost);
                     return;
                 }
                 takeMoney(player, currentItem, cost, true);
@@ -177,17 +280,31 @@ public class ShopManager {
         }
     }
 
-    public void shopClickHandling(ItemStack currentItem, int slot, Player player) {
+    public void shopClickHandling(ItemStack currentItem, int slot, Player player, ClickType clickType) {
         PlayerAddons e = PlayerInfo.getPlayersInfo(player);
-        if (e == null) return;
+        if (e == null || currentItem == null) return;
+        if (currentItem.getType().equals(Material.RED_STAINED_GLASS_PANE)) {
+            MenuUtil.playUnsuccessfulPurchase(player);
+            player.sendMessage(ChatColor.RED + "This is an empty Quick Buy slot!\n" + Materials.DIAMOND.getColor() + "Sneak Click on an item in the rest of the shop to fill it!");
+            return;
+        }
+        if (currentItem.getType().equals(Material.COMPASS)) {
+            e.updateWoolState();
+            e.openCompassMenuShop();
+            return;
+        }
         if (MathUtil.isBetweenTwoDoubles(slot,0,8)) {
             e.openShopMenu(slot);
         } else if (MathUtil.isBetweenTwoDoubles(slot,9,17)) {
             e.openShopMenu(slot-9);
         } else {
-            if (currentItem == null) return;
             Items items = Items.get(currentItem.getItemMeta().getItemName());
-            if (e.hasShears() && items == Items.PERMANENT_SHEARS) return;
+            if (clickType.equals(ClickType.SHIFT_LEFT)||clickType.equals(ClickType.SHIFT_RIGHT)) {
+                if (items.equals(Items.NOTHING) || items.equals(Items.UNKNOWN) ) return;
+                e.startAddOrRemoveFromQuickBuy(items, slot);
+                return;
+            }
+                if (e.hasShears() && items == Items.PERMANENT_SHEARS) return;
             if (isArmor(items)) {
                 if (!e.canSetArmor(items)) return;
             }
@@ -210,17 +327,17 @@ public class ShopManager {
             PlayerInventory inventory = player.getInventory();
             if (!inventory.contains(cost.getType(), cost.getAmount())) {
                 //TODO fix this to check offhand
-                noMoney(player, cost, inventory);
+                noMoney(player, cost);
                 return;
             }
             getRealItem(player, currentItem, items, cost);
         }
     }
 
-    private static void noMoney(Player player, ItemStack cost, PlayerInventory inventory) {
-        player.playSound(player, Sound.ENTITY_ENDERMAN_TELEPORT, 1, 0.5f);
+    private static void noMoney(Player player, ItemStack cost) {
+        MenuUtil.playUnsuccessfulPurchase(player);
         int amount = cost.getAmount();
-        for (ItemStack item : inventory.all(cost.getType()).values()) {
+        for (ItemStack item : player.getInventory().all(cost.getType()).values()) {
             amount -= item.getAmount();
         }
         Materials materials = Materials.get(cost.getType());
@@ -233,12 +350,13 @@ public class ShopManager {
 
     /**
      * @param player The player you are checking
-     * @param item The item you are buying
+     * @param itemName The name of what you are buying
      * @param cost The cost of the item in ItemStack terms
+     * @param broadcastToTeam If the purchase should be broadcast to the team
      * //TODO MAKE THIS TAKE FROM OFFHAND
      */
-    public void takeMoney(Player player, ItemStack item, ItemStack cost, boolean upgrade) {
-        purchase(player, item, upgrade);
+    public void takeMoney(Player player, String itemName, ItemStack cost, boolean broadcastToTeam) {
+        purchase(player, itemName, broadcastToTeam);
         PlayerInventory inventory = player.getInventory();
         int amount = cost.getAmount();
         Map<Integer, ? extends ItemStack> itemList = inventory.all(cost.getType());
@@ -261,6 +379,14 @@ public class ShopManager {
         }
     }
 
+    public void takeMoney(Player player, ItemStack item, ItemStack cost, boolean upgrade) {
+        takeMoney(player, item.getItemMeta().getDisplayName().substring(2), cost, upgrade);
+    }
+
+    public void takeMoney(Player player, String itemName, ItemStack cost) {
+        takeMoney(player, itemName, cost, false);
+    }
+
     private boolean isArmor(Items items) {
         return items == Items.PERMANENT_CHAINMAIL_ARMOR || items == Items.PERMANENT_IRON_ARMOR || items == Items.PERMANENT_DIAMOND_ARMOR || items == Items.PERMANENT_NETHERITE_ARMOR;
     }
@@ -269,11 +395,12 @@ public class ShopManager {
         return items == Items.STONE_SWORD || items == Items.IRON_SWORD || items == Items.DIAMOND_SWORD || items == Items.NETHERITE_SWORD;
     }
 
-    private void getRealItem(Player player, ItemStack item, Items items, ItemStack realCost) {
-        ItemStack itemStack = new ItemStack(item.getType(), item.getAmount());
+    private void  getRealItem(Player player, ItemStack item, Items items, ItemStack realCost) {
+        ItemStack itemStack = item.clone();
         ItemMeta itemMeta = item.getItemMeta();
         ItemStack cost = new ItemStack(realCost.getType(), realCost.getAmount());
         ItemMeta newItemMeta = itemStack.getItemMeta();
+        newItemMeta.setLore(new ArrayList<>());
         if (isArmor(items)) {
             takeMoney(player, item, cost, false);
             PlayerInfo.getPlayersInfo(player).setLowerArmor(items);
@@ -292,6 +419,7 @@ public class ShopManager {
             if (playersInfo.getAxeLevel().isPresent()) {
                 Util.clear(player.getInventory(),playersInfo.getAxeLevel().get());
             }
+            newItemMeta.setDisplayName(Materials.DIAMOND.getColor() + itemMeta.getDisplayName().substring(2));
             if (itemMeta.isUnbreakable()) {
                 newItemMeta.setUnbreakable(true);
             }
@@ -325,6 +453,7 @@ public class ShopManager {
             if (playersInfo.getPickaxeLevel().isPresent()) {
                 Util.clear(player.getInventory(),playersInfo.getPickaxeLevel().get());
             }
+            newItemMeta.setDisplayName(Materials.DIAMOND.getColor() + itemMeta.getDisplayName().substring(2));
             if (itemMeta.isUnbreakable()) {
                 newItemMeta.setUnbreakable(true);
             }
@@ -343,7 +472,7 @@ public class ShopManager {
         else if (item.getType() == Material.POTION) {
             PotionMeta potionMeta = (PotionMeta) itemMeta;
             PotionMeta newPotionMeta = (PotionMeta) newItemMeta;
-            newPotionMeta.setDisplayName(potionMeta.getDisplayName());
+            newPotionMeta.setDisplayName(ChatColor.WHITE + potionMeta.getDisplayName().substring(2));
             newPotionMeta.addCustomEffect(potionMeta.getCustomEffects().get(0), true);
             newPotionMeta.setColor(potionMeta.getColor());
             itemStack.setItemMeta(newItemMeta);
@@ -357,9 +486,14 @@ public class ShopManager {
         }
         if (itemMeta.hasEnchants()) {
             Map<Enchantment, Integer> enchants = itemMeta.getEnchants();
+            newItemMeta.setDisplayName(Materials.DIAMOND.getColor() + itemMeta.getDisplayName().substring(2));
             for (Enchantment enchantment: enchants.keySet()) {
                 newItemMeta.addEnchant(enchantment, enchants.get(enchantment), true);
             }
+        } else if (itemMeta.hasRarity()) {
+            newItemMeta.setDisplayName(Materials.DIAMOND.getColor() + itemMeta.getDisplayName().substring(2));
+        } else {
+            newItemMeta.setDisplayName(ChatColor.WHITE + itemMeta.getDisplayName().substring(2));
         }
         PlayerInventory playerInventory = player.getInventory();
         if (InventoryUtil.checkIfReallyFull(playerInventory,cost,itemStack)) {
@@ -367,26 +501,34 @@ public class ShopManager {
             return;
         }
         takeMoney(player, item, cost, false);
-        itemStack.setItemMeta(newItemMeta);
+        if (isBlock(itemStack.getType())) {
+            itemStack = new ItemStack(itemStack.getType(), itemStack.getAmount());
+        } else {
+            itemStack.setItemMeta(newItemMeta);
+        }
         player.getInventory().addItem(itemStack);
         PlayerInfo.getPlayersInfo(player).update();
     }
 
-    private void purchase(Player player, ItemStack item, boolean upgrade) {
-        player.sendMessage(ChatColor.GREEN + "You purchased " + ChatColor.GOLD + item.getItemMeta().getDisplayName().substring(2));
-        player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 1, 2);
-        if (!upgrade) return;
+    private boolean isBlock(Material material) {
+        return material.isBlock() && !material.equals(Material.CHEST) && !material.equals(Material.RED_STAINED_GLASS) && !material.equals(Material.YELLOW_STAINED_GLASS) && !material.equals(Material.LIME_STAINED_GLASS) && !material.equals(Material.BLUE_STAINED_GLASS);
+    }
+
+    private void purchase(Player player, String itemName, boolean broadcastToTeam) {
+        player.sendMessage(ChatColor.GREEN + "You purchased " + ChatColor.GOLD + itemName);
+        MenuUtil.playSuccessfulPurchase(player);
+        if (!broadcastToTeam) return;
         for (UUID uuid : PlayerInfo.getTeamInfo(Util.getTeam(player)).getPeopleOnTeam().keySet()) {
             Player player2 = Bukkit.getPlayer(uuid);
             if (player2 == null) continue;
             if (player.equals(player2)) continue;
-            player2.sendMessage(ChatColor.GREEN + player.getName() + " purchased " + ChatColor.GOLD + item.getItemMeta().getDisplayName().substring(2));
-            player2.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 1, 2);
+            player2.sendMessage(ChatColor.GREEN + player.getName() + " purchased " + ChatColor.GOLD + itemName);
+            MenuUtil.playSuccessfulPurchase(player);
         }
     }
 
     private static void inventoryFull(Player player) {
-        player.playSound(player, Sound.ENTITY_ENDERMAN_TELEPORT, 1, 0.5f);
+        MenuUtil.playUnsuccessfulPurchase(player);
         player.sendMessage(ChatColor.RED + "Purchase Failed! Your inventory is full!");
     }
 }

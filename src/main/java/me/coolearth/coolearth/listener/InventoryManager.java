@@ -57,7 +57,13 @@ public class InventoryManager implements Listener {
     }
 
     private boolean getNotDroppable(Material type) {
-        return type == Material.SHEARS || type == Material.WOODEN_SWORD || type == Material.WOODEN_PICKAXE || type == Material.IRON_PICKAXE || type == Material.GOLDEN_PICKAXE || type == Material.DIAMOND_PICKAXE || type == Material.NETHERITE_PICKAXE || type == Material.WOODEN_AXE || type == Material.STONE_AXE || type == Material.GOLDEN_AXE || type == Material.DIAMOND_AXE || type == Material.NETHERITE_AXE;
+        return type == Material.SHEARS || type == Material.WOODEN_SWORD || type == Material.WOODEN_PICKAXE || type == Material.IRON_PICKAXE || type == Material.GOLDEN_PICKAXE || type == Material.COMPASS || type == Material.DIAMOND_PICKAXE || type == Material.NETHERITE_PICKAXE || type == Material.WOODEN_AXE || type == Material.STONE_AXE || type == Material.GOLDEN_AXE || type == Material.DIAMOND_AXE || type == Material.NETHERITE_AXE;
+    }
+
+    @EventHandler
+    public void onCraft(CraftItemEvent event) {
+        if (!event.getWhoClicked().getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) return;
+        event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)

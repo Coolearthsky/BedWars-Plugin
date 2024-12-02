@@ -1,23 +1,28 @@
 package me.coolearth.coolearth.players;
 
+import com.comphenix.protocol.wrappers.Pair;
 import me.coolearth.coolearth.PacketManager.ArmorPackets;
 import me.coolearth.coolearth.Util.*;
+import me.coolearth.coolearth.config.Config;
 import me.coolearth.coolearth.global.Constants;
+import me.coolearth.coolearth.math.MathUtil;
 import me.coolearth.coolearth.menus.menuItems.Items;
+import me.coolearth.coolearth.menus.menuItems.MenuUtil;
+import me.coolearth.coolearth.menus.menuItems.WoolState;
 import org.bukkit.*;
+import org.bukkit.Color;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 public class PlayerAddons {
     private TeamUtil m_team;
@@ -33,6 +38,8 @@ public class PlayerAddons {
     private final JavaPlugin m_coolearth;
     private boolean m_shearsUpgrade;
     private boolean m_inUpgrades;
+    private boolean m_inTracker;
+    private boolean m_inQuickBuyMenu;
     private Material m_armor;
     private final UUID m_player;
     private int kills;
@@ -40,6 +47,12 @@ public class PlayerAddons {
     private int bedsBroken;
     private Optional<BukkitRunnable> m_ignoreTrap;
     private Optional<BukkitRunnable> m_onRespawn;
+    private Optional<BukkitRunnable> m_tracker;
+    private Set<TeamUtil> m_trackedTeams = new HashSet<>();
+    private Inventory m_compassMenu;
+    private Inventory m_compassShopMenu;
+    private Inventory m_quickBuyMenu;
+    private final List<Items> m_quickBuyItems;
 
     public PlayerAddons(JavaPlugin coolearth, TeamUtil team, UUID player) {
         m_team = team;
@@ -49,6 +62,7 @@ public class PlayerAddons {
         m_protectionLevel = 0;
         kills = 0;
         bedsBroken = 0;
+        m_inQuickBuyMenu = false;
         finalKills = 0;
         m_hasBed = true;
         m_alive = true;
@@ -57,23 +71,122 @@ public class PlayerAddons {
         m_shearsUpgrade = false;
         m_ignoreTrap = Optional.empty();
         m_inUpgrades = false;
+        m_tracker = Optional.empty();
+        m_quickBuyMenu = Bukkit.createInventory(Bukkit.getPlayer(player), 54, "Adding ot Quick Buy...");
         for (int i = 0; i < 9; i++) {
             Inventory shop = Bukkit.createInventory(Bukkit.getPlayer(player), 54, "Shop");
             m_shop.add(shop);
+        }
+        m_quickBuyItems = Config.loadItemsFromYml(m_player, "quickBuyMenu");
+        if (m_quickBuyItems.isEmpty()) {
+            for (int i = 0; i < 21; i++) {
+                m_quickBuyItems.add(Items.NOTHING);
+            }
+            saveQuickBuyMenuToDisk();
         }
         m_onRespawn = Optional.empty();
         createStore();
         m_currentShopMenu = Optional.empty();
         m_pickaxeLevel = Optional.empty();
         m_axeLevel = Optional.empty();
+        createWoolNoBed();
+    }
+
+    private void saveQuickBuyMenuToDisk() {
+        Config.saveItemsToYml(m_player, m_quickBuyItems, "quickBuyMenu");
     }
 
     public void enteredUpgrades() {
         m_inUpgrades = true;
     }
 
-    public void leftUpgrades() {
-        m_inUpgrades = false;
+    public void openCompassMenu() {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
+        player.openInventory(m_compassMenu);
+        m_inTracker = true;
+    }
+
+    public void openCompassMenuShop() {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
+        player.openInventory(m_compassShopMenu);
+        m_inTracker = true;
+    }
+
+    public void updateWoolState() {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
+        WoolState woolState = WoolState.get(player.getInventory().contains(Material.EMERALD, 2), hasBeds());
+        updateWoolState(woolState);
+    }
+
+    public boolean hasBeds() {
+        for (TeamInfo teamInfo : PlayerInfo.getTeams().values()) {
+            if (teamInfo.getTeam().equals(m_team)) continue;
+            if (teamInfo.hasBed()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void resetTracker() {
+        m_trackedTeams.clear();
+        m_tracker.ifPresent(BukkitRunnable::cancel);
+        m_tracker = Optional.empty();
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
+        Util.sendActionBarMessage(player, "");
+        player.setCompassTarget(Constants.getSpawn());
+    }
+
+    public void stopTrackingTeam(TeamUtil team) {
+        m_trackedTeams.remove(team);
+        if (m_trackedTeams.isEmpty()) {
+            resetTracker();
+        }
+    }
+
+    public boolean trackingTeam(TeamUtil team) {
+        return m_trackedTeams.contains(team);
+    }
+
+    public boolean trackerPurchasable() {
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return false;
+        return !hasBeds() && player.getInventory().contains(Material.EMERALD, 2);
+    }
+
+    private void updateWoolState(WoolState woolState) {
+        int i = 0;
+        for (TeamUtil team : TeamUtil.values()) {
+            if (team.equals(TeamUtil.NONE)) continue;
+            if (!PlayerInfo.getTeamInfo(team).isAnyoneOnTeamAlive()) continue;
+            if (team.equals(m_team)) {
+                //TODO idk if this is necessary
+                m_trackedTeams.remove(team);
+                continue;
+            }
+            WoolState woolState1 = woolState;
+            if (m_trackedTeams.contains(team)) {
+                woolState1 = WoolState.BOUGHT;
+            }
+            m_compassMenu.setItem(MenuUtil.getInventoryNum(1, 2 + i * 2), MenuUtil.getWool(team, woolState1));
+            m_compassShopMenu.setItem(MenuUtil.getInventoryNum(1, 2 + i * 2), MenuUtil.getWool(team, woolState1));
+            i++;
+        }
+    }
+
+    private void createWoolNoBed() {
+        m_compassMenu = Bukkit.createInventory(Bukkit.getPlayer(m_player), 36, "Purchase Enemy Tracker");
+        m_compassShopMenu = Bukkit.createInventory(Bukkit.getPlayer(m_player), 36, "Purchase Enemy Tracker");
+        m_compassMenu.setItem(MenuUtil.getInventoryNum(3, MenuUtil.getMiddleCol()), MenuUtil.setItemName("tracker", Material.ARROW,
+                ChatColor.GREEN + "Go Back",
+                ChatColor.GRAY + "To Tracker & Communication"));
+        m_compassShopMenu.setItem(MenuUtil.getInventoryNum(3, MenuUtil.getMiddleCol()), MenuUtil.setItemName("shop", Material.ARROW,
+                ChatColor.GREEN + "Go Back",
+                ChatColor.GRAY + "To Quick Buy"));
     }
 
     public int getKills() {
@@ -118,10 +231,11 @@ public class PlayerAddons {
         menuFive(m_shop.get(4));
     }
 
-    public void stopAllLoops(){
+    public void stopAllLoops() {
         Player player = Bukkit.getPlayer(m_player);
         if (player == null) return;
         m_ignoreTrap.ifPresent(BukkitRunnable::cancel);
+        m_tracker.ifPresent(BukkitRunnable::cancel);
         if (m_onRespawn.isPresent()) {
             m_onRespawn.get().cancel();
             player.setGameMode(GameMode.SURVIVAL);
@@ -145,7 +259,7 @@ public class PlayerAddons {
                 deleteRunnable();
             }
         });
-        m_ignoreTrap.get().runTaskLater(m_coolearth,20*60);
+        m_ignoreTrap.get().runTaskLater(m_coolearth, 20 * 60);
     }
 
     private void deleteRunnable() {
@@ -163,7 +277,80 @@ public class PlayerAddons {
 
     public void closeInventory() {
         m_currentShopMenu = Optional.empty();
-        leftUpgrades();
+        m_inTracker = false;
+        m_inUpgrades = false;
+        m_inQuickBuyMenu = false;
+    }
+
+    public void openInventory(Inventory inv) {
+        if (inv.equals(m_compassMenu) || inv.equals(m_compassShopMenu)) {
+            m_inTracker = true;
+        } else if (inv.equals(m_quickBuyMenu)) {
+            m_inQuickBuyMenu = true;
+        } else if (m_shop.contains(inv)) {
+            for (int i = 0; i < m_shop.size(); i++) {
+                if (m_shop.get(i).equals(inv)) {
+                    m_currentShopMenu = Optional.of(i);
+                    return;
+                }
+            }
+        }
+    }
+
+    public boolean clickedCompassMenu(Inventory inventory) {
+        return m_compassMenu.equals(inventory) || m_compassShopMenu.equals(inventory);
+    }
+
+    public boolean clickedQuickBuyMenu(Inventory inventory) {
+        return m_quickBuyMenu.equals(inventory);
+    }
+
+    public boolean inTrackerMenu() {
+        return m_inTracker;
+    }
+
+    public boolean inQuickBuyMenu() {
+        return m_inQuickBuyMenu;
+    }
+
+    public void addTeamToTracker(TeamUtil team) {
+        m_trackedTeams.add(team);
+        if (m_tracker.isPresent()) return;
+        m_tracker = Optional.of(new BukkitRunnable() {
+            @Override
+            public void run() {
+                Player player = Bukkit.getPlayer(m_player);
+                if (player == null) return;
+                Pair<Player, Integer> nearest = getNearest();
+                if (nearest == null) {
+                    Util.sendActionBarMessage(player, ChatColor.RED + ChatColor.BOLD.toString() + "No players alive!");
+                    return;
+                }
+                Player trackingPlayer = nearest.getFirst();
+                double distance = nearest.getSecond();
+                Util.sendActionBarMessage(player, ChatColor.WHITE + "Tracking: " + Util.getTeam(trackingPlayer).getChatColor() + ChatColor.BOLD + trackingPlayer.getName() + ChatColor.WHITE + " - Distance: " + ChatColor.GREEN + ChatColor.BOLD + (int) distance + "m");
+                player.setCompassTarget(trackingPlayer.getLocation());
+            }
+        });
+        m_tracker.get().runTaskTimer(m_coolearth, 0, 1);
+    }
+
+    public Pair<Player, Integer> getNearest() {
+        double distance = Double.POSITIVE_INFINITY; // To make sure the first
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return null;
+        Player target = null;
+        for (Player e : Bukkit.getOnlinePlayers()) {
+            if (e == player) continue; //Added this check so you don't target yourself.
+            if (!m_trackedTeams.contains(Util.getTeam(e))) continue;
+            double distanceto = player.getLocation().distance(e.getLocation());
+            if (distanceto > distance)
+                continue;
+            distance = distanceto;
+            target = e;
+        }
+        if (target == null) return null;
+        return new Pair<>(target, (int) distance);
     }
 
     private void createStore() {
@@ -172,8 +359,8 @@ public class PlayerAddons {
             if (player == null) return;
             Inventory shop = Bukkit.createInventory(player, 54, "Shop");
             createShopMenu(shop, i);
-            createShop(shop, i);
-            m_shop.set(i,shop);
+            updateShop(i);
+            m_shop.set(i, shop);
         }
     }
 
@@ -238,7 +425,7 @@ public class PlayerAddons {
                 throw new UnsupportedOperationException("Not real settable armor set");
         }
         if (material == Material.LEATHER_BOOTS) {
-            player.getInventory().setBoots(Util.setColor(getProt(material),m_team.getColor()));
+            player.getInventory().setBoots(Util.setColor(getProt(material), m_team.getColor()));
         } else {
             player.getInventory().setBoots(getProt(material));
         }
@@ -253,177 +440,195 @@ public class PlayerAddons {
     }
 
     public void createShopMenu(Inventory inventory, int greenPlacement) {
-        Util.addToShop(inventory, 0, Material.NETHER_STAR);
-        switch (m_team){
+        MenuUtil.addToShop(inventory, 0, MenuUtil.getCatagory(Material.NETHER_STAR, greenPlacement));
+        switch (m_team) {
             case RED:
-                Util.addToShop(inventory,1, Material.RED_TERRACOTTA);
+                MenuUtil.addToShop(inventory, 1, MenuUtil.getCatagory(Material.RED_TERRACOTTA, greenPlacement));
                 break;
             case YELLOW:
-                Util.addToShop(inventory,1, Material.YELLOW_TERRACOTTA);
+                MenuUtil.addToShop(inventory, 1, MenuUtil.getCatagory(Material.YELLOW_TERRACOTTA, greenPlacement));
                 break;
             case GREEN:
-                Util.addToShop(inventory,1, Material.LIME_TERRACOTTA);
+                MenuUtil.addToShop(inventory, 1, MenuUtil.getCatagory(Material.LIME_TERRACOTTA, greenPlacement));
                 break;
             case BLUE:
-                Util.addToShop(inventory,1, Material.BLUE_TERRACOTTA);
+                MenuUtil.addToShop(inventory, 1, MenuUtil.getCatagory(Material.BLUE_TERRACOTTA, greenPlacement));
                 break;
             case NONE:
-                Util.addToShop(inventory,1, Material.TERRACOTTA);
+                MenuUtil.addToShop(inventory, 1, MenuUtil.getCatagory(Material.TERRACOTTA, greenPlacement));
                 break;
             default:
                 throw new UnsupportedOperationException("Invalid team");
         }
-        Util.addToShop(inventory, 2,
-                Material.GOLDEN_SWORD,
-                Material.CHAINMAIL_BOOTS,
-                Material.STONE_AXE,
-                Material.BOW,
-                Material.BREWING_STAND,
-                Material.TNT,
-                Material.BEDROCK);
+        MenuUtil.addToShop(inventory, 2,
+                MenuUtil.getCatagory(Material.GOLDEN_SWORD, greenPlacement),
+                MenuUtil.getCatagory(Material.CHAINMAIL_BOOTS, greenPlacement),
+                MenuUtil.getCatagory(Material.STONE_PICKAXE, greenPlacement),
+                MenuUtil.getCatagory(Material.BOW, greenPlacement),
+                MenuUtil.getCatagory(Material.BREWING_STAND, greenPlacement),
+                MenuUtil.getCatagory(Material.TNT, greenPlacement),
+                MenuUtil.getCatagory(Material.BEDROCK, greenPlacement));
         for (int i = 9; i < 18; i++) {
-            Util.addToShop(inventory, i, Material.GRAY_STAINED_GLASS_PANE);
+            addToShop(inventory, i, false, Items.GRAY_PANE);
         }
-        Util.addToShop(inventory, greenPlacement + 9, Material.LIME_STAINED_GLASS_PANE);
+        addToShop(inventory, greenPlacement + 9, false, Items.LIME_PANE);
+    }
+    public ItemStack getDisplayItem(Items material) {
+        return getDisplayItem(material, Optional.empty());
     }
 
-    public ItemStack getDisplayItem(Items material) {
+    public ItemStack getDisplayItem(Items material, Optional<Inventory> shopMenu) {
         Player player = Bukkit.getPlayer(m_player);
-        ItemStack firstCost = material.getFirstCost();
+        ItemStack firstCost = null;
+        if (material.getCosts().length > 0) {
+            firstCost = material.getFirstCost();
+        }
         PlayerInventory inventory = player.getInventory();
+        boolean quickBuyContains = m_quickBuyItems.contains(material);
+        boolean inMenu = false;
+        if (shopMenu.isPresent()) {
+            inMenu = shopMenu.get().equals(m_shop.get(0));
+        }
         switch (material) {
             case WOOL:
                 String goodForBridging = "Cheap blocks, good for bridging.";
                 int amount = 16;
                 switch (m_team) {
                     case RED:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_WOOL, amount), "Red Wool", material.getName() , firstCost, goodForBridging);
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_WOOL, amount), "Red Wool", material.getName() , firstCost, goodForBridging);
                     case YELLOW:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_WOOL, amount), "Yellow Wool", material.getName(), firstCost, goodForBridging);
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_WOOL, amount), "Yellow Wool", material.getName(), firstCost, goodForBridging);
                     case GREEN:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_WOOL, amount), "Green Wool", material.getName(), firstCost, goodForBridging);
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_WOOL, amount), "Green Wool", material.getName(), firstCost, goodForBridging);
                     case BLUE:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_WOOL, amount), "Blue Wool", material.getName(), firstCost, goodForBridging);
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_WOOL, amount), "Blue Wool", material.getName(), firstCost, goodForBridging);
                     case NONE:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.WHITE_WOOL, amount), "White Wool", material.getName(), firstCost, goodForBridging);
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.WHITE_WOOL, amount), "White Wool", material.getName(), firstCost, goodForBridging);
                     default:
                         throw new UnsupportedOperationException("Not a real team");
                 }
             case WOOD:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.OAK_PLANKS,16), "Wood", material.getName(), firstCost, "Stronger bed defense then wool,", "But still pretty weak");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.OAK_PLANKS,16), "Wood", material.getName(), firstCost, "Stronger bed defense then wool,", "But still pretty weak");
             case END_STONE:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.END_STONE,12), "End Stone", material.getName(), firstCost, "Strong bed defense, renders fireballs useless");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.END_STONE,12), "End Stone", material.getName(), firstCost, "Strong bed defense, renders fireballs useless");
             case OBSIDIAN:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.OBSIDIAN,4), "Obsidian", material.getName(), firstCost, "The best bed defense, very expensive");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.OBSIDIAN,4), "Obsidian", material.getName(), firstCost, "The best bed defense, very expensive");
             case BLAST_PROOF_GLASS:
                 switch (m_team) {
                     case RED:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     case YELLOW:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     case GREEN:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     case BLUE:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_STAINED_GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     case NONE:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.GLASS,4), "Blast Proof Glass", material.getName(), firstCost, "Renders fireballs and tnt useless," ,"but is very fragile to a player.");
                     default:
                         throw new UnsupportedOperationException("Not a real team");
                 }
             case LADDERS:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LADDER,8), "Ladders", material.getName(), firstCost, "Ladders, they help climb.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LADDER,8), "Ladders", material.getName(), firstCost, "Ladders, they help climb.");
             case TERRACOTTA:
                 switch (m_team) {
                     case RED:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.RED_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     case YELLOW:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.YELLOW_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     case GREEN:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.LIME_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     case BLUE:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.BLUE_TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     case NONE:
-                        return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
+                        return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.TERRACOTTA,16), "Terracotta", material.getName(), firstCost, "Strong yet quite cheap bed defense.");
                     default:
                         throw new UnsupportedOperationException("Not a real team");
                 }
             case STONE_SWORD:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.STONE_SWORD), "Stone Sword", material.getName(), firstCost, "Good value cheap sword.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.STONE_SWORD), "Stone Sword", material.getName(), firstCost, "Good value cheap sword.");
             case IRON_SWORD:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.IRON_SWORD), "Iron Sword", material.getName(), firstCost, "Slightly more expense but more powerful sword.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.IRON_SWORD), "Iron Sword", material.getName(), firstCost, "Slightly more expense but more powerful sword.");
             case DIAMOND_SWORD:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.DIAMOND_SWORD), "Diamond Sword", material.getName(), firstCost, "Very powerful endgame sword.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.DIAMOND_SWORD), "Diamond Sword", material.getName(), firstCost, "Very powerful endgame sword.");
             case NETHERITE_SWORD:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.NETHERITE_SWORD), "Netherite Sword", material.getName(), firstCost, "The last sword you will ever need.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),getSharp(Material.NETHERITE_SWORD), "Netherite Sword", material.getName(), firstCost, "The last sword you will ever need.");
             case KNOCKBACK_STICK:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createWithEnchantment(Enchantment.KNOCKBACK, Material.STICK), "Knockback Stick", material.getName(), firstCost, "Stick blessed with the power of knockback," , "use it to bully your enemies on bridges.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()), Util.createWithEnchantment(Enchantment.KNOCKBACK, Material.STICK), "Knockback Stick", material.getName(), firstCost, "Stick blessed with the power of knockback," , "use it to bully your enemies on bridges.");
             case PERMANENT_CHAINMAIL_ARMOR:
                 Boolean s = null;
                 if (canSetArmor(material)) s = inventory.contains(firstCost.getType(), firstCost.getAmount());
-                return Util.addNamesShopStyle(s,getProt(Material.CHAINMAIL_BOOTS), "Permanent Chainmail Armor", material.getName(), firstCost, "Permanent chainmail armor,","quite the bargain.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,s,getProt(Material.CHAINMAIL_BOOTS), "Permanent Chainmail Armor", material.getName(), firstCost, "Permanent chainmail armor,","quite the bargain.");
             case PERMANENT_IRON_ARMOR:
                 Boolean contains = null;
                 if (canSetArmor(material)) contains = inventory.contains(firstCost.getType(), firstCost.getAmount());
-                return Util.addNamesShopStyle(contains,getProt(Material.IRON_BOOTS), "Permanent Iron Armor", material.getName(), firstCost, "Permanent iron armor, also","quite the bargain.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,contains,getProt(Material.IRON_BOOTS), "Permanent Iron Armor", material.getName(), firstCost, "Permanent iron armor, also","quite the bargain.");
             case PERMANENT_DIAMOND_ARMOR:
                 Boolean d = null;
                 if (canSetArmor(material)) d = inventory.contains(firstCost.getType(), firstCost.getAmount());
-                return Util.addNamesShopStyle(d,getProt(Material.DIAMOND_BOOTS), "Permanent Diamond Armor", material.getName(), firstCost, "Permanent diamond armor, very","powerful endgame armor.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,d,getProt(Material.DIAMOND_BOOTS), "Permanent Diamond Armor", material.getName(), firstCost, "Permanent diamond armor, very","powerful endgame armor.");
             case PERMANENT_NETHERITE_ARMOR:
                 Boolean c = null;
                 if (canSetArmor(material)) c = inventory.contains(firstCost.getType(), firstCost.getAmount());
-                return Util.addNamesShopStyle(c,getProt(Material.NETHERITE_BOOTS), "Permanent Netherite Armor", material.getName(), firstCost, "Permanent netherite armor,", "the final endgame armor.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,c,getProt(Material.NETHERITE_BOOTS), "Permanent Netherite Armor", material.getName(), firstCost, "Permanent netherite armor,", "the final endgame armor.");
             case PERMANENT_SHEARS:
                 Boolean a = null;
                 if (!hasShears()) a = inventory.contains(firstCost.getType(), firstCost.getAmount());
-                return Util.addNamesShopStyle(a,Util.createWithUnbreakable(Material.SHEARS), "Permanent Shears", material.getName(), firstCost, "Permanent shears allowing you", "to always break wool", "faster than your enemies.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,a,Util.createWithUnbreakable(Material.SHEARS), "Permanent Shears", material.getName(), firstCost, "Permanent shears allowing you", "to always break wool", "faster than your enemies.");
             case PICKAXE_UPGRADE:
                 Trio<ItemStack, ItemStack, String> pickaxe = getPickaxeInfo();
                 Boolean containse1 = null;
                 if (!m_pickaxeLevel.isPresent() || !m_pickaxeLevel.get().equals(Material.NETHERITE_PICKAXE)) containse1 = inventory.contains(pickaxe.getSecond().getType(), pickaxe.getSecond().getAmount());
-                return Util.addNamesShopStyle(containse1,pickaxe.getFirst(), pickaxe.getThird(), material.getName(), pickaxe.getSecond(), "Pickaxe upgrades, necessary for breaking","into opponents beds, the more you spend ","on pickaxes the faster your heists will be.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,containse1,pickaxe.getFirst(), pickaxe.getThird(), material.getName(), pickaxe.getSecond(), "Pickaxe upgrades, necessary for breaking","into opponents beds, the more you spend ","on pickaxes the faster your heists will be.");
             case AXE_UPGRADE:
                 Trio<ItemStack, ItemStack, String> axe = getAxeInfo();
                 Boolean contains1 = null;
                 if (!m_axeLevel.isPresent() || !m_axeLevel.get().equals(Material.NETHERITE_AXE)) contains1 = inventory.contains(axe.getSecond().getType(), axe.getSecond().getAmount());
-                return Util.addNamesShopStyle(contains1,getSharp(axe.getFirst()), axe.getThird(), material.getName(), axe.getSecond(), "Axe upgrades, necessary are","sometimes necessary for","breaking into opponents beds,","they are useful mainly for", "wood defenses and damage.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,contains1,getSharp(axe.getFirst()), axe.getThird(), material.getName(), axe.getSecond(), "Axe upgrades, necessary are","sometimes necessary for","breaking into opponents beds,","they are useful mainly for", "wood defenses and damage.");
             case ARROW:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.ARROW,6), "Arrows", material.getName(), firstCost, "Arrows are a necessity if you want to buy bows", "as they are literally your ammo.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.ARROW,6), "Arrows", material.getName(), firstCost, "Arrows are a necessity if you want to buy bows", "as they are literally your ammo.");
             case REGULAR_BOW:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createWithUnbreakable(Material.BOW), "Bow", material.getName(), firstCost, "Base bow, still a powerful weapon for knocking your", "opponents off their bridges for a good price.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createWithUnbreakable(Material.BOW), "Bow", material.getName(), firstCost, "Base bow, still a powerful weapon for knocking your", "opponents off their bridges for a good price.");
             case POWER_BOW:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createWithEnchantmentAndUnbreakable(Enchantment.POWER,Material.BOW), "Power Bow", material.getName(), firstCost, "The more powerful bow, a good late game purchase.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createWithEnchantmentAndUnbreakable(Enchantment.POWER,Material.BOW), "Power Bow", material.getName(), firstCost, "The more powerful bow, a good late game purchase.");
             case PUNCH_BOW:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.addEnchantment(Enchantment.PUNCH,Util.createWithEnchantmentAndUnbreakable(Enchantment.POWER,Material.BOW)), "Punch Bow", material.getName(), firstCost, "The endgame bow, watch your opponents fly from a", "single hit with this bad boy.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.addEnchantment(Enchantment.PUNCH,Util.createWithEnchantmentAndUnbreakable(Enchantment.POWER,Material.BOW)), "Punch Bow", material.getName(), firstCost, "The endgame bow, watch your opponents fly from a", "single hit with this bad boy.");
             case JUMP_BOOST_POTION:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.LIME, PotionEffectType.JUMP_BOOST, 60*20, 4), "Jump Boost Potion", material.getName(), firstCost, "This potion will make you jump","over all your opponents defenses...", "for 60 seconds.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.LIME, PotionEffectType.JUMP_BOOST, 60*20, 4), "Jump Boost Potion", material.getName(), firstCost, "This potion will make you jump","over all your opponents defenses...", "for 60 seconds.");
             case SPEED_POTION:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.YELLOW, PotionEffectType.SPEED, 60*20, 1), "Speed Potion", material.getName(), firstCost, "This potion will make you speed","right past all your opponents...", "for 60 seconds.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.YELLOW, PotionEffectType.SPEED, 60*20, 1), "Speed Potion", material.getName(), firstCost, "This potion will make you speed","right past all your opponents...", "for 60 seconds.");
             case INVISIBILTY_POTION:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.WHITE, PotionEffectType.INVISIBILITY, 30*20, 0), "Invisibility Potion", material.getName(), firstCost, "This potion will make you sneak","right past all your opponents...", "for 30 seconds.");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),Util.createPotion(Color.WHITE, PotionEffectType.INVISIBILITY, 30*20, 0), "Invisibility Potion", material.getName(), firstCost, "This potion will make you sneak","right past all your opponents...", "for 30 seconds.");
             case GOLDEN_APPLE:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.GOLDEN_APPLE), "Golden Apple", material.getName(), firstCost, "Fantastic regen to get you out of a tough spot");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.GOLDEN_APPLE), "Golden Apple", material.getName(), firstCost, "Fantastic regen to get you out of a tough spot");
             case SILVERFISH_SNOWBALL:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.SNOWBALL), "Silverfish Snowball", material.getName(), firstCost, "A way to swarm your opponents with annoying critters");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.SNOWBALL), "Silverfish Snowball", material.getName(), firstCost, "A way to swarm your opponents with annoying critters");
             case IRON_GOLEM_SPAWN_EGG:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.IRON_GOLEM_SPAWN_EGG), "Iron Golem", material.getName(), firstCost, "Spawns a literal iron golem to defend you,","it does not get much better than that");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.IRON_GOLEM_SPAWN_EGG), "Iron Golem", material.getName(), firstCost, "Spawns a literal iron golem to defend you,","it does not get much better than that");
             case FIREBALL:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.FIRE_CHARGE), "Fireball", material.getName(), firstCost, "Shoots a ball which creates", "a large explosion on impact");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.FIRE_CHARGE), "Fireball", material.getName(), firstCost, "Shoots a ball which creates", "a large explosion on impact");
             case TNT:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.TNT), "TNT", material.getName(), firstCost, "Spawns an activated tnt on place");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.TNT), "TNT", material.getName(), firstCost, "Spawns an activated tnt on place");
             case ENDER_PEARL:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.ENDER_PEARL), "Ender Pearl", material.getName(), firstCost, "It's an ender pearl, it lets you","teleport where you throw it");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.ENDER_PEARL), "Ender Pearl", material.getName(), firstCost, "It's an ender pearl, it lets you","teleport where you throw it");
             case WATER_BUCKET:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.WATER_BUCKET), "Water Bucket", material.getName(), firstCost, "Lets you add water somewhere");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.WATER_BUCKET), "Water Bucket", material.getName(), firstCost, "Lets you add water somewhere");
             case BRIDGE_EGG:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.EGG), "Bridge Egg", material.getName(), firstCost, "Creates a bridge where you throw it");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.EGG), "Bridge Egg", material.getName(), firstCost, "Creates a bridge where you throw it");
             case MAGIC_MILK:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.MILK_BUCKET), "Magic Milk", material.getName(), firstCost, "Lets you avoid enemy traps for 60 seconds");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.MILK_BUCKET), "Magic Milk", material.getName(), firstCost, "Lets you avoid enemy traps for 60 seconds");
             case SPONGE:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.SPONGE, 4), "Sponges", material.getName(), firstCost, "Soaks up water");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.SPONGE, 4), "Sponges", material.getName(), firstCost, "Soaks up water");
             case POP_OUT_BASE:
-                return Util.addNamesShopStyle(inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.CHEST), "Pop Out Base", material.getName(), firstCost, "Creates a mini-base where you place it");
-            default: throw new UnsupportedOperationException("Not a bedwars item");
+                return MenuUtil.addNamesShopStyle(quickBuyContains, inMenu,inventory.contains(firstCost.getType(), firstCost.getAmount()),new ItemStack(Material.CHEST), "Pop Out Base", material.getName(), firstCost, "Creates a mini-base where you place it");
+            case LIME_PANE:
+                return MenuUtil.getSeparator(true, "Categories","Items");
+            case GRAY_PANE:
+                return MenuUtil.getSeparator(false, "Categories","Items");
+            case NOTHING:
+                return MenuUtil.setItemName(Material.RED_STAINED_GLASS_PANE, ChatColor.RED + "Empty Slot!", ChatColor.GRAY + "This is a Quick Buy Slot! " + Materials.DIAMOND.getColor() + "Sneak Click",ChatColor.GRAY +  "any item in the shop to add it here.");
+            default:
+                throw new UnsupportedOperationException("Not a bedwars item");
         }
     }
 
@@ -479,6 +684,7 @@ public class PlayerAddons {
         setFullArmorSet();
         player.teleport(Constants.getTeamGeneratorLocation(m_team));
         PlayerInventory inventory = player.getInventory();
+        inventory.setItem(8, MenuUtil.setItemName(Material.COMPASS, ChatColor.GREEN + "Compass " + ChatColor.GRAY + "(Right Click)"));
         inventory.addItem(getSharp(Material.WOODEN_SWORD));
         getPickaxeLowerLevel().ifPresent(material -> addItemPickaxe(inventory, material));
         getAxeLowerLevel().ifPresent(material -> addItemAxe(inventory, material));
@@ -490,6 +696,50 @@ public class PlayerAddons {
         m_pickaxeLevel = Optional.of(material);
         menuOne(m_shop.get(0));
         menuFive(m_shop.get(4));
+    }
+
+    public void startAddOrRemoveFromQuickBuy(Items item, int slot) {
+        if (m_currentShopMenu.isPresent() && m_currentShopMenu.get() == 0) {
+            m_quickBuyItems.set(convertMenuSlotToQuickBuy(slot),Items.NOTHING);
+            saveQuickBuyMenuToDisk();
+            updateShop(0);
+        } else {
+            startAddToQuickBuy(item);
+        }
+    }
+
+    public void startAddToQuickBuy(Items item) {
+        updateQuickBuyMenu(item);
+        Player player = Bukkit.getPlayer(m_player);
+        if (player == null) return;
+        m_inQuickBuyMenu = true;
+        player.openInventory(m_quickBuyMenu);
+    }
+
+    public void addToQuickBuy(int slot) {
+        m_quickBuyItems.set(convertMenuSlotToQuickBuy(slot), Items.get(m_quickBuyMenu.getItem(4).getItemMeta().getItemName()));
+        saveQuickBuyMenuToDisk();
+    }
+
+    public int convertMenuSlotToQuickBuy(int slot) {
+        int index = slot - 19;
+        int div = index / 9;
+        index -= (2 * div);
+        return index;
+    }
+
+    public void updateQuickBuyMenu(Items item) {
+        addToShopQuickBuy(m_quickBuyMenu, m_quickBuyItems);
+        ItemStack displayItem = getDisplayItem(item);
+        ItemMeta itemMeta = displayItem.getItemMeta();
+        List<String> lore = itemMeta.getLore();
+        if (lore.get(lore.size()-3).equals("")) {
+            lore.remove(lore.size() - 1);
+        }
+        lore.set(lore.size()-1, ChatColor.YELLOW + "Adding item to Quick Slot!");
+        itemMeta.setLore(lore);
+        displayItem.setItemMeta(itemMeta);
+        m_quickBuyMenu.setItem(MenuUtil.getInventoryNum(0, MenuUtil.getMiddleCol()), displayItem);
     }
 
     private void addItemAxe(PlayerInventory inventory, Material material) {
@@ -509,6 +759,7 @@ public class PlayerAddons {
         ArmorPackets.stopLoop(player);
         giveKillerItems(player);
         m_playerAlive = false;
+        resetTracker();
         player.getInventory().clear();
         Util.clearEffects(player);
         player.setGameMode(GameMode.SPECTATOR);
@@ -589,7 +840,7 @@ public class PlayerAddons {
         }
     }
 
-    private Material getPickaxeToShow() {
+    private Material    getPickaxeToShow() {
         if (!m_pickaxeLevel.isPresent()) return Material.WOODEN_PICKAXE;
         switch (m_pickaxeLevel.get()) {
             case WOODEN_PICKAXE:
@@ -613,11 +864,12 @@ public class PlayerAddons {
         if (pastPane.isPresent()) {
             if (pastPane.get() == menuNum) return;
         }
-        player.openInventory(m_shop.get(menuNum));
         m_currentShopMenu = Optional.of(menuNum);
+        player.openInventory(m_shop.get(menuNum));
     }
 
-    private void createShop(Inventory inventory, int i) {
+    public void updateShop(int i) {
+        Inventory inventory = m_shop.get(i);
         switch (i) {
             case 0:
                 menuOne(inventory);
@@ -652,35 +904,17 @@ public class PlayerAddons {
 
     public void update() {
         for (int i = 0; i < 9; i++) {
-            createShop(m_shop.get(i),i);
+            updateShop(i);
         }
     }
 
     private void menuOne(Inventory inventory) {
-        addToShop(inventory,
-                Items.WOOL,
-                Items.DIAMOND_SWORD,
-                Items.KNOCKBACK_STICK,
-                Items.AXE_UPGRADE,
-                Items.ENDER_PEARL,
-                Items.INVISIBILTY_POTION,
-                Items.OBSIDIAN);
-        addToShop(inventory,28,
-                Items.WOOD,
-                Items.IRON_SWORD,
-                Items.PERMANENT_IRON_ARMOR,
-                Items.PICKAXE_UPGRADE,
-                Items.FIREBALL,
-                Items.SPEED_POTION,
-                Items.IRON_GOLEM_SPAWN_EGG);
-        addToShop(inventory,37,
-                Items.END_STONE,
-                Items.STONE_SWORD,
-                Items.PERMANENT_DIAMOND_ARMOR,
-                Items.PERMANENT_SHEARS,
-                Items.MAGIC_MILK,
-                Items.JUMP_BOOST_POTION,
-                Items.GOLDEN_APPLE);
+        addToShop(inventory, m_quickBuyItems);
+        MenuUtil.addToShop(inventory, 45, MenuUtil.setItemName(Material.COMPASS,
+                ChatColor.GREEN + "Tracker Shop",
+                ChatColor.GRAY + "Purchase tracking upgrade for your",
+                ChatColor.GRAY + "compass which will track each player",
+                ChatColor.GRAY + "on a specific team until your die"));
     }
 
     private void menuTwo(Inventory inventory) {
@@ -738,8 +972,7 @@ public class PlayerAddons {
                 Items.FIREBALL,
                 Items.TNT,
                 Items.ENDER_PEARL,
-                Items.WATER_BUCKET);
-        addToShop(inventory,28,
+                Items.WATER_BUCKET,
                 Items.BRIDGE_EGG,
                 Items.MAGIC_MILK,
                 Items.SPONGE,
@@ -904,15 +1137,35 @@ public class PlayerAddons {
         }
     }
 
-    private void addToShop(Inventory inventory, Items... items) {
-        addToShop(inventory, 19, items);
+    private void addToShop(Inventory inventory, boolean quickBuy, Items... items) {
+        List<Items[]> itemsListSplit = MathUtil.splitArrayIntoSubarrays(items, 7);
+        int i = 0;
+        for (Items[] itemsArray : itemsListSplit) {
+            addToShop(inventory, 19+i*9,quickBuy, itemsArray);
+            i++;
+        }
     }
 
-    private void addToShop(Inventory inventory, int startpoint, Items... items) {
+    private void addToShop(Inventory inventory, Items... items) {
+        addToShop(inventory, false,items);
+    }
+
+    private void addToShop(Inventory inventory, List<Items> items) {
+        addToShop(inventory, false, items.toArray(new Items[0]));
+    }
+
+    private void addToShopQuickBuy(Inventory inventory, List<Items> items) {
+        addToShop(inventory, true, items.toArray(new Items[0]));
+    }
+
+    private void addToShop(Inventory inventory, int startpoint, boolean quickBuy, Items... items) {
         ItemStack[] itemStacks = new ItemStack[items.length];
         for (int i = 0; i < (items.length); i++) {
-            itemStacks[i] = getDisplayItem(items[i]);
+            itemStacks[i] = getDisplayItem(items[i], Optional.of(inventory));
+            if (quickBuy) {
+                MenuUtil.setItemName(itemStacks[i], itemStacks[i].getItemMeta().getDisplayName(), ChatColor.YELLOW + "Click to replace!");
+            }
         }
-        Util.addToShop(inventory, startpoint, itemStacks);
+        MenuUtil.addToShop(inventory, startpoint, itemStacks);
     }
 }

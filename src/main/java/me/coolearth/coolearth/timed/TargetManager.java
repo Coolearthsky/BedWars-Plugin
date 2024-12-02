@@ -2,6 +2,7 @@ package me.coolearth.coolearth.timed;
 
 import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.*;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -22,8 +23,9 @@ public class TargetManager {
         m_mobManager = mobManager;
     }
 
-    public void addLivingEntity(Mob entity, Player player, long livingTime) {
+    public void addLivingEntity(Mob entity, Player player, int livingTime) {
         m_mobManager.placeMob(entity, livingTime);
+        player.sendMessage(ChatColor.GREEN + "Your creature will fight for you for " + livingTime + " seconds.");
         TeamUtil team = Util.getTeam(player);
         if (team == TeamUtil.NONE) return;
         entity.addScoreboardTag(team.getName());

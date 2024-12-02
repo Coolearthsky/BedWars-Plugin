@@ -16,11 +16,13 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
+        event.setJoinMessage("");
         m_playerInfo.onPlayerJoin(event.getPlayer());
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
+        event.setQuitMessage("");
         m_playerInfo.onPlayerQuit(event.getPlayer());
     }
 }

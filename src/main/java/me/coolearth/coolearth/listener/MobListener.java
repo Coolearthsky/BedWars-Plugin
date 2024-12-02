@@ -2,6 +2,7 @@ package me.coolearth.coolearth.listener;
 
 import me.coolearth.coolearth.Util.TeamUtil;
 import me.coolearth.coolearth.Util.Util;
+import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.timed.MobManager;
 import me.coolearth.coolearth.timed.TargetManager;
 import org.bukkit.Location;
@@ -64,8 +65,7 @@ public class MobListener implements Listener {
 
     @EventHandler
     public void onHit(EntityDamageByEntityEvent event) {
-        if (!event.getEntityType().equals(EntityType.PLAYER)) return;
-        if (event.getDamager().getScoreboardTags().contains(Util.getTeam((Player) event.getEntity()).getName())) {
+        if (!GlobalVariables.isGameActive() || Util.getTeamEntity(event.getDamager()).equals(Util.getTeamEntity(event.getEntity()))) {
             event.setCancelled(true);
         }
     }
