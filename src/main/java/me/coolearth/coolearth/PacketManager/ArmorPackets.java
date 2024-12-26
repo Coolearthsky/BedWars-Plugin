@@ -45,7 +45,6 @@ public class ArmorPackets {
                 Player player = event.getPlayer();
                 event.setCancelled(true);
                 if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) {
-                    Bukkit.getLogger().info("not on");
                     Util.broadcastMessage(ChatColor.WHITE + player.getName() + ": " + event.getPacket().getStrings().read(0));
                     return;
                 }
