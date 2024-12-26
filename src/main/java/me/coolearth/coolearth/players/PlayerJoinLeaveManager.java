@@ -74,7 +74,7 @@ public class PlayerJoinLeaveManager {
 
     public void onPlayerQuit(Player player) {
         if (!player.getScoreboardTags().contains("player") || !GlobalVariables.isGameActive()) {
-            Util.broadcastMessage(ChatColor.YELLOW + player.getName() + " disconnected.");
+            Util.broadcastMessage(ChatColor.YELLOW + player.getName() + " has quit!");
             return;
         }
         Util.broadcastMessage(Util.getTeam(player).getChatColor() + player.getName() + ChatColor.GRAY + " disconnected.");
