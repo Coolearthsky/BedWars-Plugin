@@ -6,8 +6,10 @@ import me.coolearth.coolearth.global.Constants;
 import me.coolearth.coolearth.global.GlobalVariables;
 import me.coolearth.coolearth.players.PlayerAddons;
 import me.coolearth.coolearth.players.TeamInfo;
+import me.coolearth.coolearth.startstop.GameController;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -36,6 +38,12 @@ public class DeathListener implements Listener {
 
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent event){
-        event.setRespawnLocation(Constants.getSpawn());
+        Location spawn;
+        if (GlobalVariables.isGameActive()) {
+            spawn = Constants.getSpawn();
+        } else {
+            spawn = Constants.getPregameSpawn();
+        }
+        event.setRespawnLocation(spawn);
     }
 }
