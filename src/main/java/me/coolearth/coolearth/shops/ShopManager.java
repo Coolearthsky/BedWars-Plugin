@@ -158,7 +158,7 @@ public class ShopManager {
         PlayerAddons playerAddons = PlayerInfo.getPlayersInfo(player);
         if (playerAddons == null) return;
         if (slot == 4) return;
-
+        MenuUtil.playSuccessfulPurchase(player);
         playerAddons.addToQuickBuy(slot);
         playerAddons.update();
         playerAddons.openShopMenu(0);
@@ -300,8 +300,9 @@ public class ShopManager {
         } else {
             Items items = Items.get(currentItem.getItemMeta().getItemName());
             if (clickType.equals(ClickType.SHIFT_LEFT)||clickType.equals(ClickType.SHIFT_RIGHT)) {
-                if (items.equals(Items.NOTHING) || items.equals(Items.UNKNOWN) ) return;
-                e.startAddOrRemoveFromQuickBuy(items, slot);
+                //TODO make this also check if it is in the shop
+                if (items.equals(Items.NOTHING) || items.equals(Items.UNKNOWN) || (e.quickBuyContains(Items.get(currentItem.getItemMeta().getItemName())) && e.getMenu().get() != 0)) return;
+                e.startAddOrRemoveFromQuickBuy(player, items, slot);
                 return;
             }
                 if (e.hasShears() && items == Items.PERMANENT_SHEARS) return;

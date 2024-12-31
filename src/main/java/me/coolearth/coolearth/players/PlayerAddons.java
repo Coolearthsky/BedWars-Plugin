@@ -72,7 +72,7 @@ public class PlayerAddons {
         m_ignoreTrap = Optional.empty();
         m_inUpgrades = false;
         m_tracker = Optional.empty();
-        m_quickBuyMenu = Bukkit.createInventory(Bukkit.getPlayer(player), 54, "Adding ot Quick Buy...");
+        m_quickBuyMenu = Bukkit.createInventory(Bukkit.getPlayer(player), 54, "Adding to Quick Buy...");
         for (int i = 0; i < 9; i++) {
             Inventory shop = Bukkit.createInventory(Bukkit.getPlayer(player), 54, "Shop");
             m_shop.add(shop);
@@ -368,6 +368,10 @@ public class PlayerAddons {
         return m_currentShopMenu.isPresent();
     }
 
+    public Optional<Integer> getMenu() {
+        return m_currentShopMenu;
+    }
+
     public void setTeam(TeamUtil team, boolean hasBed) {
         m_team = team;
         m_hasBed = hasBed;
@@ -477,6 +481,7 @@ public class PlayerAddons {
         return getDisplayItem(material, Optional.empty());
     }
 
+
     public ItemStack getDisplayItem(Items material, Optional<Inventory> shopMenu) {
         Player player = Bukkit.getPlayer(m_player);
         ItemStack firstCost = null;
@@ -484,7 +489,7 @@ public class PlayerAddons {
             firstCost = material.getFirstCost();
         }
         PlayerInventory inventory = player.getInventory();
-        boolean quickBuyContains = m_quickBuyItems.contains(material);
+        boolean quickBuyContains = quickBuyContains(material);
         boolean inMenu = false;
         if (shopMenu.isPresent()) {
             inMenu = shopMenu.get().equals(m_shop.get(0));
@@ -632,6 +637,10 @@ public class PlayerAddons {
         }
     }
 
+    public boolean quickBuyContains(Items material) {
+        return m_quickBuyItems.contains(material);
+    }
+
     public void upgradePick() {
         setPickLevel(getPickaxeToShow());
     }
@@ -698,10 +707,11 @@ public class PlayerAddons {
         menuFive(m_shop.get(4));
     }
 
-    public void startAddOrRemoveFromQuickBuy(Items item, int slot) {
+    public void startAddOrRemoveFromQuickBuy(Player player,Items item, int slot) {
         if (m_currentShopMenu.isPresent() && m_currentShopMenu.get() == 0) {
             m_quickBuyItems.set(convertMenuSlotToQuickBuy(slot),Items.NOTHING);
             saveQuickBuyMenuToDisk();
+            MenuUtil.playSuccessfulPurchase(player);
             updateShop(0);
         } else {
             startAddToQuickBuy(item);
